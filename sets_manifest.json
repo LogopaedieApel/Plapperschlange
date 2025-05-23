@@ -1,5 +1,5 @@
 [
-    { "id": "k_words", "name": "Wörter mit K", "file": "data/k_words.json" },
-    { "id": "m_words", "name": "Wörter mit M", "file": "data/m_words.json" }
+    { "id": "k_initial", "name": "Wörter mit K am Anfang", "file": "data/k_initial.json" },
+    { "id": "m_initial", "name": "Wörter mit M am Anfang", "file": "data/m_initial.json" }
     // Füge hier weitere Sets hinzu
 ]
