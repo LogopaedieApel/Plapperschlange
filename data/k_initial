@@ -1,0 +1,11 @@
+[
+    { "emoji": "🐄", "word": "Kuh", "id": 0 },
+    { "emoji": "🧀", "word": "Käse", "id": 1 },
+    { "emoji": "🥶", "word": "kalt", "id": 2 },
+    { "emoji": "😺", "word": "Katze", "id": 3 },
+    { "emoji": "🍰", "word": "Kuchen", "id": 4 },
+    { "emoji": "🕯️", "word": "Kerze", "id": 5 },
+    { "emoji": "🪲", "word": "Käfer", "id": 6 },
+    { "emoji": "🧳", "word": "Koffer", "id": 7 },
+    { "emoji": "🌵", "word": "Kaktus", "id": 8 }
+]
