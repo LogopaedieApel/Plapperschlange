@@ -1,7 +1,7 @@
 [
     { "emoji": "🐒", "word": "Maus", "id": 0 },
     { "emoji": "🌙", "word": "Mond", "id": 1 },
-    { "emoji": "🎶", "word": "Musik", "id": 2 },
+    { "emoji": "👨‍⚕️", "word": "Musik", "id": 2 },
     { "emoji": "👨‍⚕️", "word": "Mann", "id": 3 },
     { "emoji": "💐", "word": "Mai", "id": 4 }, // Beispiel
     { "emoji": "🌊", "word": "Meer", "id": 5 }, // Beispiel
