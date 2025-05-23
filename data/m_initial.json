@@ -3,9 +3,9 @@
     { "emoji": "🌙", "word": "Mond", "id": 1 },
     { "emoji": "👨‍⚕️", "word": "Musik", "id": 2 },
     { "emoji": "👨‍⚕️", "word": "Mann", "id": 3 },
-    { "emoji": "💐", "word": "Mai", "id": 4 }, // Beispiel
-    { "emoji": "🌊", "word": "Meer", "id": 5 }, // Beispiel
-    { "emoji": "✉️", "word": "Mail", "id": 6 }, // Beispiel
-    { "emoji": "🐭", "word": "Maus (Tier)", "id": 7 }, // Beispiel
-    { "emoji": "🥇", "word": "Medaille", "id": 8 }  // Beispiel
+    { "emoji": "💐", "word": "Mai", "id": 4 },
+    { "emoji": "🌊", "word": "Meer", "id": 5 },
+    { "emoji": "✉️", "word": "Mail", "id": 6 },
+    { "emoji": "🐭", "word": "Maus (Tier)", "id": 7 },
+    { "emoji": "🥇", "word": "Medaille", "id": 8 }
 ]
