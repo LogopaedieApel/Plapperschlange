@@ -1,1 +1,1255 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Plapperschlange</title>
+    <style>
+        html {
+            height: 100%;
+            background-color: #ffffff; /* Hintergrund für den gesamten Viewport */
+            box-sizing: border-box;
+        }
 
+        *, *::before, *::after {
+            box-sizing: inherit;
+        }
+
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100%;
+            margin: 0;
+            background-color: #ffffff; /* Stellt sicher, dass der Body-Bereich die Farbe hat */
+            color: #333;
+
+            /* Paddings für Safe Areas direkt am Body */
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-left: env(safe-area-inset-left, 0px);
+            padding-right: env(safe-area-inset-right, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        .menu-toggle-button {
+            position: fixed;
+            /* Positionierung relativ zu den Safe Areas */
+            top: calc(env(safe-area-inset-top, 0px) + 10px);
+            right: calc(env(safe-area-inset-right, 0px) + 10px);
+            z-index: 1002;
+            background: none;
+            color: #94bbb5;
+            border: none;
+            padding: 8px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 2em;
+            line-height: 1;
+            box-shadow: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+         .menu-toggle-button:hover {
+            color: #7a9f9a;
+        }
+
+        .settings-menu {
+            position: fixed;
+            top: 0; /* Menü füllt von ganz oben */
+            left: 0;
+            width: 280px;
+            max-width: 80%;
+            height: 100vh; /* Volle Viewport-Höhe */
+            background-color: #f8f9fa;
+            box-shadow: none;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            /* Inneres Padding des Menüs, um Safe Areas zu berücksichtigen */
+            padding-top: calc(env(safe-area-inset-top, 0px) + 15px);
+            padding-left: calc(env(safe-area-inset-left, 0px) + 15px);
+            padding-right: calc(env(safe-area-inset-right, 0px) + 15px);
+            padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 15px);
+        }
+
+        .settings-menu.active {
+            transform: translateX(0);
+        }
+
+        .settings-menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+            flex-shrink: 0;
+        }
+        .settings-menu-header h2 { margin: 0; color: #333; font-size: 1.3em; }
+
+        .close-menu-button {
+            background: none;
+            border: none;
+            font-size: 2em;
+            cursor: pointer;
+            color: #777;
+            padding: 0;
+            line-height: 1;
+        }
+        .close-menu-button:hover { color: #333; }
+
+        .settings-menu-content {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            overflow-y: auto;
+            overscroll-behavior-y: contain;
+            min-height: 0;
+        }
+
+        .settings-menu-content .settings {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px; /* Abstand zum Footer darunter */
+        }
+        .settings-menu-content .settings > div {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+        .settings-menu-content .settings label {
+            font-size: 0.9em;
+            color: #555;
+        }
+        .settings-menu-content .settings select {
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 1em;
+            width: 100%;
+        }
+        .settings-menu-content .settings select:disabled {
+            background-color: #e9ecef;
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .settings-menu-footer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px; /* Abstand zwischen Start- und Info-Button */
+            flex-shrink: 0;
+        }
+
+        .info-button {
+            background-color: #e9ecef;
+            color: #555;
+            border: 1px solid #ccc;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 1.6em;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            padding: 0;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .info-button:hover {
+            background-color: #d0d0d0;
+            color: #333;
+        }
+
+        .apply-button {
+            background-color: #94bbb5;
+            color: white;
+            padding: 12px 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1.1em;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .apply-button:hover {
+             background-color: #779791;
+        }
+
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+            display: none;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .menu-overlay.active {
+            display: block;
+            opacity: 1;
+        }
+
+        .container {
+            background-color: #fff;
+            padding-top: 40px;
+            padding-right: 20px;
+            padding-left: 20px;
+            padding-bottom: 70px;
+            border-radius: 10px;
+            box-shadow: none;
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+            position: relative;
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 60px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #94bbb5;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .container h2 { /* Wird für Set-Namen verwendet */
+            font-size: 1.0em;
+            color: #999999;
+            margin-top: 0;
+            margin-bottom: 20px;
+            min-height: 1.2em; /* Platzhalter für den Text */
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 10px;
+            width: 100%;
+            max-width: 300px;
+            aspect-ratio: 1 / 1;
+            margin: 20px auto;
+            position: relative;
+        }
+        .game-board.initial-focus-menu > .tile {
+            filter: blur(3px);
+        }
+        .game-board.initial-focus-menu .board-overlay {
+            background-color: rgba(200, 200, 200, 0.5);
+        }
+
+        .tile {
+            background-color: #e0e0e0;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5em;
+            cursor: pointer;
+            transition: transform 0.1s ease-out, background-color 0.1s ease-out, filter 0.3s ease-out;
+            user-select: none;
+        }
+        .tile.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #0056b3;
+            animation: pulse 0.4s ease-out;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.5); }
+            100% { transform: scale(1); }
+        }
+        .tile.error-input {
+            background-color: #dc3545 !important;
+            color: white !important;
+            animation: shakeError 0.4s cubic-bezier(.36,.07,.19,.97) both;
+            transform: translate3d(0, 0, 0);
+        }
+        @keyframes shakeError {
+          10%, 90% { transform: translate3d(-1px, 0, 0); }
+          20%, 80% { transform: translate3d(2px, 0, 0); }
+          30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
+          40%, 60% { transform: translate3d(3px, 0, 0); }
+        }
+
+        .progress-circles {
+            margin-top: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        .circle {
+            width: 15px; height: 15px; border-radius: 50%;
+            border: 2px solid #aaa; background-color: white;
+        }
+        .circle.correct { background-color: #28a745; border-color: #1e7e34; }
+        .circle.incorrect { background-color: #dc3545; border-color: #b02a37; }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .round-icon-button {
+            background-color: #ffc107; color: #333; border: none;
+            width: 48px; height: 48px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.6em; cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .round-icon-button:hover { background-color: #e0a800; }
+        .round-icon-button:active { transform: scale(0.95); }
+        .round-icon-button:disabled {
+            background-color: #c0c0c0; color: #888;
+            cursor: not-allowed; box-shadow: none;
+        }
+
+        #controlBarLogo {
+            position: fixed;
+            right: calc(env(safe-area-inset-right, 0px) + 20px);
+            bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            z-index: 999;
+        }
+
+        .end-game-display {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background-color: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+            z-index: 10; opacity: 0; visibility: hidden;
+            transform: scale(0.8);
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out, visibility 0.3s ease-out;
+            pointer-events: none;
+        }
+        .end-game-display.visible { opacity: 1; visibility: visible; transform: scale(1); pointer-events: auto; }
+        .end-game-display .emoji-icon { font-size: 4em; margin-bottom: 15px; }
+        .end-game-display .message { font-size: 1.1em; font-weight: bold; color: #333; margin-bottom: 20px; text-align: center; padding: 0 10px; }
+        .end-game-display .play-again-button {
+            background-color: #007bff; color: white; padding: 10px 20px; border: none;
+            border-radius: 5px; font-size: 1em; cursor: pointer; transition: background-color 0.2s; font-weight: bold;
+        }
+        .end-game-display .play-again-button:hover { background-color: #0056b3; }
+
+        .game-board .board-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 5; display: none;
+        }
+
+        .info-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 1003;
+            opacity: 0; visibility: hidden; transform: scale(0.8);
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out, visibility 0.3s ease-out;
+            pointer-events: none;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .info-modal.visible { opacity: 1; visibility: visible; transform: scale(1); pointer-events: auto; }
+        .info-modal-content {
+            background-color: #ffffff; padding: 25px 30px; border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.25);
+            text-align: left; width: 100%; max-width: 550px; max-height: 85vh;
+            overflow-y: auto; overscroll-behavior-y: contain;
+        }
+        .info-modal-content h2 { margin-top: 0; color: #333; text-align: center; font-size: 1.4em; margin-bottom: 20px; }
+        .info-modal-content p, .info-modal-content ul { font-size: 0.95em; line-height: 1.65; color: #444; margin-bottom: 15px; }
+        .info-modal-content ul { padding-left: 25px; }
+        .info-modal-content li { margin-bottom: 10px; }
+        .info-modal-content strong { color: #222; }
+        .close-info-button {
+            background-color: #6c757d; color: white; padding: 12px 25px; border: none;
+            border-radius: 5px; font-size: 1em; font-weight: bold; cursor: pointer;
+            transition: background-color 0.2s; display: block; margin: 25px auto 0 auto; min-width: 120px;
+        }
+        .close-info-button:hover { background-color: #5a6268; }
+
+
+        @media (max-width: 320px) {
+            .tile { font-size: 2em; }
+            .container {
+                padding-top: 30px; padding-right: 15px; padding-left: 15px; padding-bottom: 60px; margin-top: 50px;
+            }
+            #controlBarLogo { right: 15px; bottom: 15px; width: 35px; height: 35px; }
+            .end-game-display .emoji-icon { font-size: 3em; }
+            .end-game-display .message { font-size: 1em; }
+            .info-modal-content { padding: 20px; }
+            .info-modal-content h2 { font-size: 1.2em; }
+            .info-modal-content p, .info-modal-content ul { font-size: 0.9em; }
+        }
+    </style>
+</head>
+<body>
+    <button id="menuToggleButton" class="menu-toggle-button" aria-label="Einstellungen öffnen" aria-expanded="false">
+        ☰
+    </button>
+
+    <div id="settingsMenu" class="settings-menu" aria-hidden="true">
+        <div class="settings-menu-header">
+            <h2>Einstellungen</h2>
+            <button id="closeMenuButton" class="close-menu-button" aria-label="Einstellungen schließen">×</button>
+        </div>
+        <div class="settings-menu-content">
+            <div class="settings">
+                <div>
+                    <label for="gameSetSelect">Spielset:</label>
+                    <select id="gameSetSelect">
+                        <!-- Optionen werden per JS gefüllt -->
+                    </select>
+                </div>
+                <div>
+                    <label for="sequenceLength">Anzahl der Wörter:</label>
+                    <select id="sequenceLength">
+                        <option value="1">1</option><option value="2">2</option>
+                        <option value="3" selected>3</option><option value="4">4</option>
+                        <option value="5">5</option><option value="6">6</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="numRounds">Durchgänge:</label>
+                    <select id="numRounds">
+                        <option value="1">1 (Test)</option>
+                        <option value="5">5</option><option value="10" selected>10</option>
+                        <option value="15">15</option><option value="20">20</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="wordSpacing">Abstand zwischen Wörtern (ms):</label>
+                    <select id="wordSpacing">
+                        <option value="100">100</option><option value="200">200</option>
+                        <option value="300">300</option><option value="400">400</option>
+                        <option value="500" selected>500</option><option value="600">600</option>
+                        <option value="700">700</option><option value="800">800</option>
+                        <option value="900">900</option><option value="1000">1000</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="voiceSelect">Stimme:</label>
+                    <select id="voiceSelect"><option value="">Standard</option></select>
+                </div>
+            </div>
+            <div class="settings-menu-footer">
+                <button id="applySettingsAndStartButton" class="apply-button">Start</button>
+                <button id="infoButton" class="info-button" aria-label="Informationen für Eltern">
+                    ℹ
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="menuOverlay" class="menu-overlay"></div>
+
+    <div class="container">
+        <h1>Plapperschlange</h1>
+        <h2 id="gameSetTitle">Wird geladen...</h2> <!-- ID hinzugefügt für Set-Titel -->
+        <div class="game-board" id="gameBoard">
+            <div class="board-overlay" id="boardOverlay"></div>
+            <div class="end-game-display" id="endGameDisplay">
+                <div class="emoji-icon">👍</div>
+                <div class="message" id="endGameMessage"></div>
+                <button id="playAgainButton" class="play-again-button">Nochmal spielen?</button>
+            </div>
+        </div>
+
+        <div class="progress-circles" id="progressCircles"></div>
+        <div class="controls" id="gameControls">
+            <button id="repeatButton" class="round-icon-button" disabled aria-label="Sequenz wiederholen">
+                ↺
+            </button>
+            <img src="images/logo.png" alt="Firmenlogo" id="controlBarLogo">
+        </div>
+    </div>
+
+    <div id="infoModal" class="info-modal" role="dialog" aria-modal="true" aria-labelledby="infoModalTitle" aria-hidden="true">
+        <div class="info-modal-content">
+            <h2 id="infoModalTitle">Informationen für Eltern</h2>
+            <p>
+                Liebe Eltern, mit der "Plapperschlange" können Sie spielerisch das <strong>auditive Gedächtnis</strong>
+                und die <strong>Konzentrationsfähigkeit</strong> Ihres Kindes fördern. Dieses Spiel hilft dabei, gehörte Wortsequenzen
+                kurzzeitig zu speichern und korrekt wiederzugeben.
+            </p>
+            <p>So nutzen Sie die Einstellungen optimal:</p>
+            <ul>
+                <li><strong>Spielset:</strong> Wählen Sie ein Set aus, das zum aktuellen Lernfokus oder den Interessen Ihres Kindes passt.</li>
+                <li><strong>Anzahl der Wörter:</strong> Beginnen Sie mit einer geringen Anzahl (z.B. 2 oder 3 Wörter),
+                    besonders bei jüngeren Kindern oder wenn Ihr Kind das Spiel zum ersten Mal spielt.
+                    Steigern Sie die Anzahl langsam, sobald Ihr Kind sicherer wird. Dies trainiert die Merkspanne.</li>
+                <li><strong>Durchgänge:</strong> Eine moderate Anzahl an Durchgängen (z.B. 5 bis 10) ist meist ideal,
+                    um die Aufmerksamkeit aufrechtzuerhalten, ohne zu überfordern. Kurze, regelmäßige Spieleinheiten
+                    sind oft effektiver als lange.</li>
+                <li><strong>Abstand zwischen Wörtern:</strong> Ein längerer Abstand (z.B. 500 bis 800 Millisekunden)
+                    gibt Ihrem Kind mehr Zeit, jedes Wort zu verarbeiten, bevor das nächste kommt. Experimentieren Sie,
+                    welcher Abstand für Ihr Kind am besten passt. Ein kürzerer Abstand erhöht den Schwierigkeitsgrad.</li>
+                <li><strong>Stimme:</strong> Lassen Sie Ihr Kind eine Stimme auswählen, die es als angenehm empfindet.
+                    Eine vertraute oder klare Stimme kann das Zuhören erleichtern.</li>
+            </ul>
+            <p>
+                Beobachten Sie Ihr Kind beim Spielen: Hat es Spaß? Ist es frustriert oder unterfordert?
+                Passen Sie die Einstellungen entsprechend an. Das wichtigste Ziel ist, Freude am Lernen zu vermitteln
+                und das Selbstvertrauen Ihres Kindes zu stärken!
+            </p>
+            <button id="closeInfoModalButton" class="close-info-button">Verstanden</button>
+        </div>
+    </div>
+
+    <script>
+        // Konstanten für Noten und Melodien
+        const NOTE = {
+            C4: 523.26, D4: 587.32, E4: 659.26, F4: 698.46, G4: 784.00, A4: 880.00,
+            B4: 987.76, C5: 1046.50, D5: 1174.66, E5: 1318.50, F5: 1396.92, G5: 1567.98,
+            PAUSE: 0
+        };
+        const REWARD_MELODIES = [
+            [NOTE.C4, NOTE.E4, NOTE.G4, NOTE.C5], [NOTE.G4, NOTE.A4, NOTE.G4, NOTE.E4, NOTE.C4],
+            [NOTE.C5, NOTE.B4, NOTE.A4, NOTE.G4, NOTE.F4, NOTE.E4, NOTE.D4, NOTE.C4],
+            [NOTE.C4, NOTE.C4, NOTE.G4, NOTE.G4, NOTE.A4, NOTE.A4, NOTE.G4],
+            [NOTE.E4, NOTE.E4, NOTE.F4, NOTE.G4, NOTE.G4, NOTE.F4, NOTE.E4, NOTE.D4, NOTE.C4, NOTE.C4, NOTE.D4, NOTE.E4, NOTE.E4, NOTE.D4, NOTE.D4],
+            [NOTE.G4, NOTE.G4, NOTE.G4, NOTE.E4, NOTE.PAUSE, NOTE.F4, NOTE.F4, NOTE.E4, NOTE.E4, NOTE.D4],
+            [NOTE.C5, NOTE.A4, NOTE.G4, NOTE.E4, NOTE.C4], [NOTE.D4, NOTE.F4, NOTE.A4, NOTE.D5],
+            [NOTE.E5, NOTE.C5, NOTE.G4, NOTE.E4], [NOTE.C4, NOTE.D4, NOTE.E4, NOTE.F4, NOTE.G4, NOTE.A4, NOTE.B4, NOTE.C5]
+        ];
+
+        // DOM Elemente
+        const menuToggleButton = document.getElementById('menuToggleButton');
+        const settingsMenu = document.getElementById('settingsMenu');
+        const closeMenuButton = document.getElementById('closeMenuButton');
+        const menuOverlay = document.getElementById('menuOverlay');
+        const applySettingsAndStartButton = document.getElementById('applySettingsAndStartButton');
+
+        const gameBoardElement = document.getElementById('gameBoard');
+        const boardOverlay = document.getElementById('boardOverlay');
+        const endGameDisplay = document.getElementById('endGameDisplay');
+        const endGameMessageElement = endGameDisplay.querySelector('.message');
+        const playAgainButtonElement = endGameDisplay.querySelector('.play-again-button');
+
+        const gameSetSelect = document.getElementById('gameSetSelect'); // NEU
+        const gameSetTitleElement = document.getElementById('gameSetTitle'); // NEU
+        const sequenceLengthSelect = document.getElementById('sequenceLength');
+        const numRoundsSelect = document.getElementById('numRounds');
+        const wordSpacingSelect = document.getElementById('wordSpacing');
+        const voiceSelect = document.getElementById('voiceSelect');
+        const repeatButton = document.getElementById('repeatButton');
+        const progressCirclesContainer = document.getElementById('progressCircles');
+
+        const infoButton = document.getElementById('infoButton');
+        const infoModal = document.getElementById('infoModal');
+        const closeInfoModalButton = document.getElementById('closeInfoModalButton');
+
+        // Spielzustandsvariablen
+        let EMOJIS_DATA = []; // Wird durch geladenes Set gefüllt
+        let allAvailableSets = []; // Wird mit Inhalt von sets_manifest.json gefüllt
+        let currentSetInfo = null; // Enthält {id, name, file} des aktuellen Sets
+
+        let currentSequence = [];
+        let playerSequence = [];
+        let currentRound = 0;
+        let totalRounds = 0;
+        let correctRounds = 0;
+        let sequenceLength = 0;
+        let wordSpacing = 0;
+        let gameActive = false;
+        let audioContext;
+        let availableVoices = [];
+        let selectedVoice = null;
+        let roundAttempts = 0;
+        const MAX_ATTEMPTS_PER_ROUND = 2;
+        let gameWasPausedByMenu = false;
+        let firstLoad = true;
+
+        async function ensureAudioContext() {
+            if (!audioContext || audioContext.state === 'closed') {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) { console.warn("AudioContext konnte nicht initialisiert werden.", e); return null; }
+            }
+            if (audioContext.state === 'suspended') {
+                try { await audioContext.resume(); } catch (e) { console.warn("AudioContext resume fehlgeschlagen.", e); return null; }
+            }
+            return audioContext;
+        }
+
+        // NEUE FUNKTIONEN FÜR SET-MANAGEMENT
+        async function initializeGameSets() {
+            try {
+                const response = await fetch('sets_manifest.json'); // Pfad zum Manifest
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                allAvailableSets = await response.json();
+
+                populateSetSelector();
+                if (allAvailableSets.length > 0) {
+                    // Lade das erste Set als Standard oder ein gespeichertes Set
+                    const savedSetId = localStorage.getItem('selectedGameSetId');
+                    const setToLoad = allAvailableSets.find(s => s.id === savedSetId) || allAvailableSets[0];
+                    gameSetSelect.value = setToLoad.id; // Wähle es im Dropdown aus
+                    await loadSet(setToLoad.id);
+                } else {
+                    gameSetTitleElement.textContent = "Keine Spielsets gefunden.";
+                    gameSetSelect.innerHTML = '<option value="">Keine Sets</option>';
+                    gameSetSelect.disabled = true;
+                    applySettingsAndStartButton.disabled = true;
+                }
+            } catch (error) {
+                console.error("Konnte Set-Manifest nicht laden:", error);
+                gameSetTitleElement.textContent = "Fehler beim Laden der Sets.";
+                gameSetSelect.innerHTML = '<option value="">Fehler</option>';
+                gameSetSelect.disabled = true;
+                applySettingsAndStartButton.disabled = true;
+            }
+        }
+
+        function populateSetSelector() {
+            gameSetSelect.innerHTML = ''; // Alte Optionen entfernen
+            allAvailableSets.forEach(set => {
+                const option = document.createElement('option');
+                option.value = set.id;
+                option.textContent = set.name;
+                gameSetSelect.appendChild(option);
+            });
+            gameSetSelect.addEventListener('change', handleSetSelectionChange);
+        }
+
+        async function handleSetSelectionChange(event) {
+            const selectedSetId = event.target.value;
+            localStorage.setItem('selectedGameSetId', selectedSetId); // Auswahl speichern
+
+            if (gameActive) {
+                // Informieren, dass "Start" geklickt werden muss, um das neue Set zu verwenden.
+                // Die UI wird durch loadSet() aktualisiert, aber das Spiel läuft weiter mit dem alten Set,
+                // bis handleApplySettingsAndStart() aufgerufen wird.
+                const selectedSet = allAvailableSets.find(s => s.id === selectedSetId);
+                 if (selectedSet) {
+                    gameSetTitleElement.textContent = selectedSet.name + " (Start drücken zum Anwenden)";
+                }
+            } else {
+                await loadSet(selectedSetId); // Set direkt laden, wenn kein Spiel aktiv ist
+            }
+            updateSettingsAccess(gameActive); // Zugriff auf Set-Select ggf. anpassen
+        }
+
+        async function loadSet(setId) {
+            currentSetInfo = allAvailableSets.find(s => s.id === setId);
+            if (!currentSetInfo) {
+                console.error("Ausgewähltes Set nicht gefunden:", setId);
+                gameSetTitleElement.textContent = "Fehler: Set nicht gefunden.";
+                EMOJIS_DATA = [];
+                populateBoard();
+                return false;
+            }
+
+            try {
+                gameSetTitleElement.textContent = `Lade ${currentSetInfo.name}...`;
+                const response = await fetch(currentSetInfo.file); // Pfad zur Set-Datei
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status} für ${currentSetInfo.file}`);
+                EMOJIS_DATA = await response.json();
+
+                if (!Array.isArray(EMOJIS_DATA) || EMOJIS_DATA.length === 0) {
+                     throw new Error(`Set-Datei ${currentSetInfo.file} ist leer oder nicht korrekt formatiert.`);
+                }
+                // Validierung: Hat jedes Item eine id, ein emoji und ein word?
+                if (EMOJIS_DATA.some(item => typeof item.id === 'undefined' || !item.emoji || !item.word)) {
+                    throw new Error(`Ein oder mehrere Items im Set ${currentSetInfo.file} haben fehlende Eigenschaften (id, emoji, word).`);
+                }
+
+
+                gameSetTitleElement.textContent = currentSetInfo.name;
+                populateBoard();
+                return true;
+            } catch (error) {
+                console.error(`Konnte Set "${currentSetInfo.name}" (${currentSetInfo.file}) nicht laden oder verarbeiten:`, error);
+                gameSetTitleElement.textContent = `Fehler: ${currentSetInfo.name} konnte nicht geladen werden.`;
+                EMOJIS_DATA = [];
+                populateBoard(); // Leeres Board oder Fehlermeldung anzeigen
+                return false;
+            }
+        }
+        // ENDE NEUE FUNKTIONEN FÜR SET-MANAGEMENT
+
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initializeGameSets(); // Lädt Manifest und initiales Set
+            initializeVoiceSelection();
+
+            menuToggleButton.addEventListener('click', () => toggleMenu());
+            closeMenuButton.addEventListener('click', () => toggleMenu(false));
+            menuOverlay.addEventListener('click', () => toggleMenu(false));
+            applySettingsAndStartButton.addEventListener('click', handleApplySettingsAndStart);
+            playAgainButtonElement.addEventListener('click', handlePlayAgain);
+
+            repeatButton.addEventListener('click', repeatCurrentSequence);
+            voiceSelect.addEventListener('change', handleVoiceChange);
+
+            infoButton.addEventListener('click', () => {
+                infoModal.classList.add('visible');
+                infoModal.setAttribute('aria-hidden', 'false');
+            });
+            closeInfoModalButton.addEventListener('click', () => {
+                infoModal.classList.remove('visible');
+                infoModal.setAttribute('aria-hidden', 'true');
+            });
+            infoModal.addEventListener('click', (event) => {
+                if (event.target === infoModal) {
+                    infoModal.classList.remove('visible');
+                    infoModal.setAttribute('aria-hidden', 'true');
+                }
+            });
+
+            settingsMenu.setAttribute('aria-hidden', 'true');
+            menuToggleButton.setAttribute('aria-expanded', 'false');
+
+            if (firstLoad && allAvailableSets.length > 0) { // Nur Menü öffnen, wenn Sets geladen wurden
+                toggleMenu(true);
+                gameBoardElement.classList.add('initial-focus-menu');
+            }
+            updateSettingsAccess(false); // Wird auch den Set-Selector initial disablen/enablen
+        });
+
+        function initializeVoiceSelection() {
+            if ('speechSynthesis' in window) {
+                const populateVoices = () => {
+                    availableVoices = speechSynthesis.getVoices();
+                    const germanVoices = availableVoices.filter(voice => voice.lang.startsWith('de'));
+                    voiceSelect.innerHTML = '<option value="">Standard (Browser)</option>';
+                    if (germanVoices.length > 0) {
+                        germanVoices.forEach(voice => {
+                            const option = document.createElement('option');
+                            option.value = voice.voiceURI;
+                            option.textContent = `${voice.name} (${voice.lang})`;
+                            voiceSelect.appendChild(option);
+                        });
+                        const savedVoiceURI = localStorage.getItem('selectedVoiceURI');
+                        if (savedVoiceURI && germanVoices.some(v => v.voiceURI === savedVoiceURI)) {
+                            voiceSelect.value = savedVoiceURI;
+                            selectedVoice = germanVoices.find(v => v.voiceURI === savedVoiceURI);
+                        } else if (germanVoices.length > 0) {
+                             // Kein automatisches Vorwählen mehr, Nutzer soll bewusst Standard oder andere wählen
+                            // voiceSelect.value = germanVoices[0].voiceURI;
+                            // selectedVoice = germanVoices[0];
+                        }
+                    } else {
+                         voiceSelect.innerHTML = '<option value="">Keine dt. Stimme verfügbar</option>';
+                    }
+                    updateSettingsAccess(gameActive);
+                };
+                speechSynthesis.onvoiceschanged = populateVoices; // Sicherstellen, dass das Event gebunden ist
+                populateVoices(); // Initial aufrufen, falls Stimmen schon da sind
+            } else {
+                voiceSelect.innerHTML = '<option value="">TTS nicht unterstützt</option>';
+                voiceSelect.disabled = true;
+            }
+        }
+
+
+        function handleVoiceChange() {
+            const selectedURI = voiceSelect.value;
+            if (selectedURI === "") {
+                selectedVoice = null;
+                localStorage.removeItem('selectedVoiceURI');
+            } else {
+                selectedVoice = availableVoices.find(voice => voice.voiceURI === selectedURI);
+                if (selectedVoice) localStorage.setItem('selectedVoiceURI', selectedVoice.voiceURI);
+            }
+            if (selectedVoice) speak(`Stimme ${selectedVoice.name} ausgewählt.`);
+            else speak("Standardstimme ausgewählt.");
+        }
+
+        function populateBoard() {
+            // Entferne nur Tiles, nicht Overlay oder End-Game-Display
+            gameBoardElement.querySelectorAll('.tile').forEach(tile => tile.remove());
+
+            if (!EMOJIS_DATA || EMOJIS_DATA.length === 0) {
+                // Optional: Nachricht anzeigen, wenn keine Daten da sind
+                // console.warn("populateBoard aufgerufen, aber EMOJIS_DATA ist leer.");
+                // Man könnte hier eine Platzhaltermeldung im gameBoardElement anzeigen
+                return;
+            }
+
+            EMOJIS_DATA.forEach(item => {
+                const tile = document.createElement('div');
+                tile.classList.add('tile');
+                tile.dataset.id = item.id;
+                tile.textContent = item.emoji;
+                tile.addEventListener('click', () => handleTileClick(item.id));
+                // Füge Kacheln vor dem Overlay und End-Game-Display ein
+                const referenceNode = boardOverlay || endGameDisplay; // Finde erstes vorhandenes Element
+                if (referenceNode && referenceNode.parentNode === gameBoardElement) {
+                     gameBoardElement.insertBefore(tile, referenceNode);
+                } else {
+                     gameBoardElement.appendChild(tile); // Fallback
+                }
+            });
+        }
+
+        function toggleMenu(forceOpen = null) {
+            const isOpen = settingsMenu.classList.contains('active');
+            const show = forceOpen !== null ? forceOpen : !isOpen;
+
+            if (infoModal.classList.contains('visible')) {
+                infoModal.classList.remove('visible');
+                infoModal.setAttribute('aria-hidden', 'true');
+            }
+
+            if (show) {
+                settingsMenu.classList.add('active');
+                menuOverlay.classList.add('active');
+                menuToggleButton.setAttribute('aria-expanded', 'true');
+                settingsMenu.setAttribute('aria-hidden', 'false');
+                if (endGameDisplay.classList.contains('visible')) {
+                    endGameDisplay.classList.remove('visible');
+                }
+                if (gameActive) {
+                    disableBoardInteraction(true);
+                    updateSettingsAccess(false); // Alle Settings sperren, wenn Menü offen ist
+                    gameWasPausedByMenu = true;
+                    if ('speechSynthesis' in window && speechSynthesis.speaking) {
+                         speechSynthesis.cancel();
+                    }
+                } else {
+                     updateSettingsAccess(false); // Alle Settings sperren, wenn Menü offen ist
+                }
+            } else {
+                settingsMenu.classList.remove('active');
+                menuOverlay.classList.remove('active');
+                menuToggleButton.setAttribute('aria-expanded', 'false');
+                settingsMenu.setAttribute('aria-hidden', 'true');
+                if (gameActive && gameWasPausedByMenu) {
+                    if (!firstLoad) {
+                         disableBoardInteraction(false);
+                    }
+                    updateSettingsAccess(true); // Nur Spiel-relevante Settings sperren
+                    gameWasPausedByMenu = false;
+                } else if (!gameActive && firstLoad) {
+                     disableBoardInteraction(false);
+                     gameBoardElement.classList.remove('initial-focus-menu');
+                     firstLoad = false;
+                     updateSettingsAccess(false); // Alle Settings freigeben
+                } else if (!gameActive && !endGameDisplay.classList.contains('visible')) {
+                     disableBoardInteraction(false);
+                     updateSettingsAccess(false); // Alle Settings freigeben
+                }
+                 updateButtonStates(gameActive);
+            }
+        }
+
+        async function handleApplySettingsAndStart() {
+            if (endGameDisplay.classList.contains('visible')) {
+                 endGameDisplay.classList.remove('visible');
+            }
+            if (gameBoardElement.classList.contains('initial-focus-menu')) {
+                 gameBoardElement.classList.remove('initial-focus-menu');
+            }
+            firstLoad = false;
+            endGameMessageElement.textContent = '';
+
+            const selectedSetId = gameSetSelect.value;
+            const loadSuccess = await loadSet(selectedSetId); // Sicherstellen, dass das gewählte Set geladen ist
+            if (!loadSuccess || EMOJIS_DATA.length === 0) {
+                gameSetTitleElement.textContent = "Fehler: Set konnte nicht für Spielstart geladen werden.";
+                toggleMenu(false); // Menü schließen
+                return; // Spiel nicht starten
+            }
+
+            toggleMenu(false); // Menü schließen NACH erfolgreichem Laden
+            if (gameActive) {
+                await abortGame(false);
+            }
+            await startGame();
+        }
+
+        async function handlePlayAgain() {
+            if (endGameDisplay.classList.contains('visible')) {
+                 endGameDisplay.classList.remove('visible');
+            }
+            endGameMessageElement.textContent = '';
+            // Das aktuelle Set (EMOJIS_DATA) sollte noch geladen sein.
+            // Falls nicht oder zur Sicherheit:
+            // const selectedSetId = gameSetSelect.value;
+            // await loadSet(selectedSetId);
+            if (EMOJIS_DATA.length === 0) {
+                console.error("Keine Set-Daten für 'Nochmal spielen' vorhanden.");
+                gameSetTitleElement.textContent = "Fehler: Bitte Set auswählen und starten.";
+                return;
+            }
+            await abortGame(false);
+            await startGame();
+        }
+
+        async function startGame() {
+            if (gameActive) return;
+            if (EMOJIS_DATA.length === 0) {
+                console.error("Versuch, Spiel ohne EMOJI_DATA zu starten.");
+                gameSetTitleElement.textContent = "Fehler: Bitte valides Set auswählen.";
+                updateSettingsAccess(false); // Einstellungen freigeben
+                return;
+            }
+            gameActive = true;
+            endGameMessageElement.textContent = '';
+            await ensureAudioContext();
+            sequenceLength = parseInt(sequenceLengthSelect.value);
+            totalRounds = parseInt(numRoundsSelect.value);
+            wordSpacing = parseInt(wordSpacingSelect.value);
+            currentRound = 0; correctRounds = 0; playerSequence = []; roundAttempts = 0;
+            gameWasPausedByMenu = false;
+            updateButtonStates(true);
+            updateSettingsAccess(true);
+            initializeProgressCircles(totalRounds);
+            await nextRound();
+        }
+
+        async function abortGame(showMessage = true) {
+            const wasActuallyActive = gameActive;
+            gameActive = false;
+            gameWasPausedByMenu = false;
+            currentSequence = []; playerSequence = [];
+            if (!settingsMenu.classList.contains('active')) {
+                disableBoardInteraction(false);
+            }
+            updateButtonStates(false);
+            updateSettingsAccess(false); // Gibt alle Einstellungen frei, auch Set-Auswahl
+            clearProgressCircles();
+            document.querySelectorAll('.tile.active, .tile.error-input').forEach(t => {
+                t.classList.remove('active'); t.classList.remove('error-input');
+            });
+            if (showMessage && wasActuallyActive) {
+                endGameMessageElement.textContent = 'Spiel abgebrochen.';
+                endGameDisplay.classList.add('visible');
+                endGameDisplay.querySelector('.emoji-icon').style.display = 'none';
+                playAgainButtonElement.style.display = 'none';
+            } else {
+                 endGameMessageElement.textContent = '';
+                 endGameDisplay.classList.remove('visible');
+                 endGameDisplay.querySelector('.emoji-icon').style.display = '';
+                 playAgainButtonElement.style.display = '';
+            }
+            if ('speechSynthesis' in window && speechSynthesis.speaking) {
+                 speechSynthesis.cancel();
+                 await sleep(50);
+            }
+        }
+
+        function updateButtonStates(isPlaying) {
+            const isBoardBlocked = boardOverlay.style.display === 'block' && !gameWasPausedByMenu;
+            repeatButton.disabled = !isPlaying || currentSequence.length === 0 || isBoardBlocked;
+            // Der Start-Button (applySettingsAndStartButton) wird durch updateSettingsAccess nicht direkt beeinflusst,
+            // aber er sollte immer aktiv sein, es sei denn, es gibt keine Sets.
+            applySettingsAndStartButton.disabled = (allAvailableSets.length === 0);
+        }
+
+        function updateSettingsAccess(gameIsRunning) {
+            // Spielset-Auswahl: Immer möglich, wenn nicht gerade Menü offen ist und Spiel nicht aktiv
+            // oder wenn Menü offen ist und Spiel nicht aktiv.
+            // Gesperrt, wenn Spiel läuft UND Menü geschlossen ist.
+            // Wenn Menü offen ist, sind sowieso alle Einstellungen gesperrt (außerhalb dieser Funktion gesteuert).
+            gameSetSelect.disabled = gameIsRunning && !settingsMenu.classList.contains('active');
+
+            sequenceLengthSelect.disabled = gameIsRunning;
+            numRoundsSelect.disabled = gameIsRunning;
+            wordSpacingSelect.disabled = gameIsRunning;
+
+            const ttsGenerallyAvailable = 'speechSynthesis' in window;
+            const voicesLoaded = availableVoices.length > 0;
+
+            if (!ttsGenerallyAvailable) {
+                voiceSelect.disabled = true;
+                const defaultOption = voiceSelect.querySelector('option[value=""]');
+                if (defaultOption) { defaultOption.textContent = "TTS nicht unterstützt"; }
+            } else if (gameIsRunning) {
+                voiceSelect.disabled = true;
+            } else {
+                 voiceSelect.disabled = !voicesLoaded || !availableVoices.some(v => v.lang.startsWith('de'));
+                  if (!voicesLoaded && voiceSelect.options.length > 0 && !voiceSelect.options[0].textContent.includes("geladen")) {
+                     const defaultOption = voiceSelect.options[0];
+                     if (defaultOption && defaultOption.value === "") { defaultOption.textContent = "Stimmen werden geladen..."; }
+                  } else if (voicesLoaded && !availableVoices.some(v => v.lang.startsWith('de'))) {
+                     const defaultOption = voiceSelect.options[0];
+                      if (defaultOption && defaultOption.value === "") { defaultOption.textContent = "Keine dt. Stimme verfügbar"; }
+                  } else if (voicesLoaded && availableVoices.some(v => v.lang.startsWith('de')) && voiceSelect.options.length > 0 && !voiceSelect.options[0].textContent.includes("Standard (Browser)")) {
+                      const defaultOption = voiceSelect.options[0];
+                      if (defaultOption && defaultOption.value === "") { defaultOption.textContent = "Standard (Browser)"; }
+                  }
+            }
+             // Der Apply/Start Button sollte nur deaktiviert werden, wenn keine Sets geladen werden konnten
+            applySettingsAndStartButton.disabled = (allAvailableSets.length === 0);
+        }
+
+
+        function initializeProgressCircles(num) {
+            progressCirclesContainer.innerHTML = '';
+            for (let i = 0; i < num; i++) {
+                const circle = document.createElement('div');
+                circle.classList.add('circle');
+                progressCirclesContainer.appendChild(circle);
+            }
+        }
+        function clearProgressCircles() { progressCirclesContainer.innerHTML = ''; }
+        function updateProgressCircle(roundIndex, isCorrect) {
+            const circles = progressCirclesContainer.children;
+            if (circles[roundIndex]) {
+                circles[roundIndex].classList.remove('correct', 'incorrect');
+                circles[roundIndex].classList.add(isCorrect ? 'correct' : 'incorrect');
+            }
+        }
+        function disableBoardInteraction(disable) { boardOverlay.style.display = disable ? 'block' : 'none'; }
+
+        async function nextRound() {
+            if (!gameActive) return;
+            if (currentRound >= totalRounds) {
+                await endGame(); return;
+            }
+            playerSequence = []; roundAttempts = 0;
+            disableBoardInteraction(true);
+            repeatButton.disabled = true;
+            currentSequence = generateRandomSequence(sequenceLength);
+            await sleep(500);
+            await playSequence(currentSequence);
+            if (gameActive && !gameWasPausedByMenu) {
+                disableBoardInteraction(false);
+            }
+            updateButtonStates(gameActive);
+        }
+
+        function generateRandomSequence(length) {
+            const sequence = [];
+            if (!EMOJIS_DATA || EMOJIS_DATA.length === 0) {
+                console.error("Kann keine Sequenz generieren, EMOJIS_DATA ist leer.");
+                return []; // Leere Sequenz zurückgeben, um Fehler zu vermeiden
+            }
+            // Stelle sicher, dass die Länge nicht größer ist als die Anzahl verfügbarer Items
+            const maxLength = EMOJIS_DATA.length;
+            const actualLength = Math.min(length, maxLength);
+
+            const availableIds = EMOJIS_DATA.map(item => item.id);
+            for (let i = 0; i < actualLength; i++) {
+                // Für kurze Sequenzen und wenige Items kann es zu Wiederholungen kommen,
+                // wenn wir einfach zufällig ziehen. Für dieses Spiel ist das ok.
+                // Wenn keine Wiederholungen innerhalb einer Sequenz gewünscht sind,
+                // müsste man die `availableIds` nach jeder Auswahl anpassen.
+                const randomIndex = Math.floor(Math.random() * availableIds.length);
+                sequence.push(availableIds[randomIndex]);
+            }
+            return sequence;
+        }
+
+        async function playSequence(sequence, isRepeat = false) {
+            if ((!gameActive && !isRepeat) || !sequence || sequence.length === 0) return;
+            disableBoardInteraction(true);
+            repeatButton.disabled = true;
+            gameBoardElement.querySelectorAll('.tile.active, .tile.error-input').forEach(t => {
+                t.classList.remove('active'); t.classList.remove('error-input');
+            });
+            for (const itemId of sequence) {
+                if ((!gameActive && !isRepeat)) break; // Überprüfung vor jedem Wort
+                const itemData = EMOJIS_DATA.find(d => d.id === itemId);
+                const tileElement = gameBoardElement.querySelector(`.tile[data-id='${itemId}']`);
+                if (itemData && tileElement) {
+                    tileElement.classList.add('active');
+                    await speak(itemData.word); // Warten bis gesprochen
+                    await sleep(100); // Kurze Pause nach dem Sprechen, bevor Kachel deaktiviert wird
+                    tileElement.classList.remove('active');
+                }
+                if (gameActive || isRepeat) {
+                     await sleep(wordSpacing); // Pause zwischen Wörtern
+                } else { break; }
+            }
+            if ((gameActive && !gameWasPausedByMenu) || isRepeat) { // Board freigeben, wenn Spiel noch aktiv oder es ein Repeat war
+                 disableBoardInteraction(false);
+            }
+            updateButtonStates(gameActive);
+        }
+
+        async function repeatCurrentSequence() {
+            const isBoardBlocked = boardOverlay.style.display === 'block' && !gameWasPausedByMenu;
+            if (!gameActive || currentSequence.length === 0 || isBoardBlocked) return;
+            playerSequence = []; // Spielersequenz zurücksetzen für neue Eingabe
+            await playSequence(currentSequence, true);
+        }
+
+        function speak(text) {
+            return new Promise(async (resolve) => {
+                if (!('speechSynthesis' in window) || !text) { resolve(); return; }
+                // Warten, bis vorherige Äußerungen beendet sind oder abbrechen
+                if (speechSynthesis.speaking) {
+                    // Option 1: Warten (kann zu Verzögerungen führen, wenn viele schnelle Aufrufe)
+                    // while (speechSynthesis.speaking) { await sleep(50); }
+                    // Option 2: Vorherige abbrechen (besser für schnelle Sequenzen)
+                    speechSynthesis.cancel();
+                    await sleep(50); // Kurze Pause, damit cancel() wirken kann
+                }
+
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'de-DE';
+                if (selectedVoice) {
+                     utterance.voice = selectedVoice;
+                } else {
+                    const voices = speechSynthesis.getVoices(); // Erneut abrufen, falls sie sich geändert haben
+                    const defaultGermanVoice = voices.find(v => v.lang.startsWith('de') && v.default) ||
+                                             voices.find(v => v.lang.startsWith('de'));
+                    if (defaultGermanVoice) utterance.voice = defaultGermanVoice;
+                }
+                utterance.onend = () => resolve();
+                utterance.onerror = (event) => { console.error('TTS Error:', event.error, "Text:", text); resolve(); }; // Mehr Details bei Fehler
+                speechSynthesis.speak(utterance);
+            });
+        }
+
+        async function playClickSound() {
+            const ctx = await ensureAudioContext();
+            if (!ctx) { return; }
+            const clickTime = ctx.currentTime;
+            const oscillator = ctx.createOscillator();
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(800, clickTime);
+            oscillator.frequency.exponentialRampToValueAtTime(400, clickTime + 0.05);
+            const gainNode = ctx.createGain();
+            gainNode.gain.setValueAtTime(0.15, clickTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, clickTime + 0.08);
+            oscillator.connect(gainNode); gainNode.connect(ctx.destination);
+            oscillator.start(clickTime); oscillator.stop(clickTime + 0.08);
+        }
+
+        async function playErrorSound() {
+            const ctx = await ensureAudioContext();
+            if (!ctx) { return; }
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            oscillator.connect(gainNode); gainNode.connect(ctx.destination);
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(120, ctx.currentTime);
+            gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+            const duration = 0.2;
+            oscillator.start(ctx.currentTime);
+            oscillator.stop(ctx.currentTime + duration);
+            gainNode.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + duration);
+            await sleep(duration * 1000 + 50);
+        }
+
+        async function handleTileClick(itemId) {
+            if (!gameActive || boardOverlay.style.display === 'block' || endGameDisplay.classList.contains('visible') || currentSequence.length === 0) return;
+            playClickSound();
+            const tileElement = gameBoardElement.querySelector(`.tile[data-id='${itemId}']`);
+            const currentClickIndex = playerSequence.length;
+
+            if (currentClickIndex < currentSequence.length && itemId === currentSequence[currentClickIndex]) {
+                playerSequence.push(itemId);
+                if (tileElement) {
+                    tileElement.classList.add('active');
+                    setTimeout(() => tileElement.classList.remove('active'), 300);
+                }
+                if (playerSequence.length === currentSequence.length) {
+                    await evaluatePlayerInput(true);
+                }
+            } else {
+                // Falsche Kachel geklickt oder zu viele Kacheln geklickt
+                if (tileElement) {
+                    tileElement.classList.add('error-input');
+                    setTimeout(() => tileElement.classList.remove('error-input'), 600);
+                }
+                await evaluatePlayerInput(false);
+            }
+        }
+
+        async function evaluatePlayerInput(isCorrectSequence) {
+            if (!gameActive) return;
+            disableBoardInteraction(true);
+            repeatButton.disabled = true;
+
+            if (isCorrectSequence) {
+                updateProgressCircle(currentRound, true); correctRounds++;
+                await sleep(150); await playFixedRewardMelody(true);
+                currentRound++; playerSequence = []; roundAttempts = 0;
+                await sleep(500); await nextRound();
+            } else {
+                roundAttempts++;
+                updateProgressCircle(currentRound, false); // Markiert Runde als falsch
+                await playErrorSound();
+                if (roundAttempts >= MAX_ATTEMPTS_PER_ROUND) {
+                    await sleep(1000); // Kurze Pause, um Fehler zu realisieren
+                    currentRound++; playerSequence = []; roundAttempts = 0;
+                    await nextRound(); // Nächste Runde starten, ohne die aktuelle zu wiederholen
+                } else {
+                    // Spieler hat noch Versuche für diese Runde
+                    playerSequence = []; // Eingabe zurücksetzen
+                    await sleep(1000);
+                    await playSequence(currentSequence, true); // Sequenz wiederholen
+                    // Board wird am Ende von playSequence freigegeben
+                }
+            }
+        }
+
+        async function endGame() {
+            const wasActuallyActive = gameActive;
+            gameActive = false; gameWasPausedByMenu = false;
+            disableBoardInteraction(false);
+            updateButtonStates(false); updateSettingsAccess(false);
+            // clearProgressCircles(); // Kreise können als Ergebnis sichtbar bleiben
+            if (wasActuallyActive) {
+                const successRate = totalRounds > 0 ? (correctRounds / totalRounds) * 100 : 0;
+                const message = `Spiel beendet! ${correctRounds} von ${totalRounds} richtig (${successRate.toFixed(0)}%).`;
+                endGameDisplay.querySelector('.emoji-icon').style.display = '';
+                endGameMessageElement.textContent = message;
+                playAgainButtonElement.style.display = '';
+                endGameDisplay.classList.add('visible');
+                await sleep(100); await playFixedRewardMelody(false);
+            } else {
+                 endGameDisplay.classList.remove('visible');
+            }
+        }
+
+        async function playFixedRewardMelody(isRoundSuccessSound = false) {
+            const ctx = await ensureAudioContext();
+            if (!ctx) { return; }
+            let melody; let baseNoteDuration; let basePauseBetweenNotes; let gainValue;
+            if (isRoundSuccessSound) {
+                melody = [NOTE.C5, NOTE.E5, NOTE.G5];
+                baseNoteDuration = 0.12; basePauseBetweenNotes = 0.04; gainValue = 0.15;
+            } else {
+                const randomMelodyIndex = Math.floor(Math.random() * REWARD_MELODIES.length);
+                melody = REWARD_MELODIES[randomMelodyIndex];
+                baseNoteDuration = 0.25; basePauseBetweenNotes = 0.08; gainValue = 0.25;
+            }
+            if (!melody || melody.length === 0) { return; }
+            let currentTime = ctx.currentTime + 0.05;
+            for (const frequency of melody) {
+                if (frequency === NOTE.PAUSE) { currentTime += baseNoteDuration + basePauseBetweenNotes; continue; }
+                const oscillator = ctx.createOscillator();
+                const gainNode = ctx.createGain();
+                oscillator.connect(gainNode); gainNode.connect(ctx.destination);
+                oscillator.frequency.setValueAtTime(frequency, currentTime);
+                oscillator.type = 'sine';
+                gainNode.gain.setValueAtTime(gainValue, currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.00001, currentTime + baseNoteDuration);
+                oscillator.start(currentTime); oscillator.stop(currentTime + baseNoteDuration);
+                currentTime += baseNoteDuration + basePauseBetweenNotes;
+            }
+            const melodyDurationMs = Math.max(0, (currentTime - (ctx.currentTime + 0.05))) * 1000;
+            if (melodyDurationMs > 0) { await sleep(melodyDurationMs + 50); }
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+    </script>
+</body>
+</html>
