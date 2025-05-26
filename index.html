@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Plapperschlange</title>
-    
+
     <!-- Google Font Comfortaa einbinden -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,6 +36,11 @@
             padding-left: env(safe-area-inset-left, 0px);
             padding-right: env(safe-area-inset-right, 0px);
             padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        /* NEU: Sicherstellen, dass Formularelemente die Schriftart erben oder explizit bekommen */
+        button, select, input, textarea {
+            font-family: 'Comfortaa', sans-serif;
         }
 
         .menu-toggle-button {
