@@ -1,4 +1,4 @@
 [
-    { "id": "k_initial", "name": "Wörter mit K am Anfang", "file": "data/k_initial.json" },
-    { "id": "m_initial", "name": "Wörter mit M am Anfang", "file": "data/m_initial.json" }
+    { "id": "s_initial", "name": "Wörter mit S am Anfang", "file": "data/s_initial.json" },
+    { "id": "sch_initial", "name": "Wörter mit SCH am Anfang", "file": "data/sch_initial.json" }
 ]
