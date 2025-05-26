@@ -1,1 +1,11 @@
-
+[
+    { "emoji": "💡", "word": "Licht", "id": 0 },
+    { "emoji": "👧🏻", "word": "Mädchen", "id": 1 },
+    { "emoji": "🥤", "word": "Becher", "id": 2 },
+    { "emoji": "🙋", "word": "ich", "id": 3 },
+    { "emoji": "📚", "word": "Bücher", "id": 4 },
+    { "emoji": "⛪", "word": "Kirche", "id": 5 },
+    { "emoji": "🪭", "word": "Fächer", "id": 6 },
+    { "emoji": "🪶", "word": "leicht", "id": 7 },
+    { "emoji": "👩‍🍳", "word": "Köchin", "id": 8 }
+]
