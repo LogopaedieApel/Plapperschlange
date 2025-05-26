@@ -1,5 +1,5 @@
 [
     { "id": "s_initial", "name": "Wörter mit S am Anfang", "file": "data/s_initial.json" },
-    { "id": "sch_initial", "name": "Wörter mit SCH am Anfang", "file": "data/sch_initial.json" }
+    { "id": "sch_initial", "name": "Wörter mit SCH am Anfang", "file": "data/sch_initial.json" },
     { "id": "ch_medial", "name": "Wörter mit CH in der Mitte", "file": "data/ch_medial.json" }
 ]
