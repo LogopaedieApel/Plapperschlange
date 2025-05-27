@@ -1,6 +1,7 @@
 [
     { "id": "s_initial", "name": "Wörter mit S am Anfang", "file": "data/s_initial.json" },
+    { "id": "s_medial", "name": "Wörter mit S in der Mitte", "file": "data/s_medial.json" },
+    { "id": "s_final", "name": "Wörter mit S am Ende", "file": "data/s_final.json" },  
     { "id": "sch_initial", "name": "Wörter mit SCH am Anfang", "file": "data/sch_initial.json" },
-    { "id": "ch_medial", "name": "Wörter mit CH in der Mitte", "file": "data/ch_medial.json" },
-    { "id": "s_medial", "name": "Wörter mit S in der Mitte", "file": "data/s_medial.json" }
-]
+    { "id": "ch_medial", "name": "Wörter mit CH in der Mitte", "file": "data/ch_medial.json" }
+   ]
