@@ -1,0 +1,11 @@
+[
+    { "emoji": "🚿", "word": "Dusche", "id": 0 },
+    { "emoji": "🍼", "word": "Flasche", "id": 1 },
+    { "emoji": "🍒", "word": "Kirschen", "id": 2 },
+    { "emoji": "🍭", "word": "Lutscher", "id": 3 },
+    { "emoji": "🐚", "word": "Muschel", "id": 4 },
+    { "emoji": "☂️", "word": "Regenschirm", "id": 5 },
+    { "emoji": "🎁", "word": "Geschenk", "id": 6 },
+    { "emoji": "🛝", "word": "Rutsche", "id": 7 },
+    { "emoji": "🛍️", "word": "Taschen", "id": 8 }
+]
