@@ -1,0 +1,11 @@
+[
+    { "emoji": "🚌", "word": "Bus", "id": 0 },
+    { "emoji": "🦶", "word": "Fuß", "id": 1 },
+    { "emoji": "🍨", "word": "Eis", "id": 2 },
+    { "emoji": "♥️", "word": "Herz", "id": 3 },
+    { "emoji": "🍄", "word": "Pilz", "id": 4 },
+    { "emoji": "🐭", "word": "Maus", "id": 5 },
+    { "emoji": "🍟", "word": "Pommes", "id": 6 },
+    { "emoji": "🍚", "word": "Reis", "id": 7 },
+    { "emoji": "⬜", "word": "weiß", "id": 8 }
+]
