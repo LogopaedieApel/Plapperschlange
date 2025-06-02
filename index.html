@@ -663,7 +663,18 @@
             } else {
                 await loadSet(selectedSetId);
             }
-            updateSettingsAccess(gameActive);
+            // --- BEGINN DER ÄNDERUNG ---
+            if (settingsMenu.classList.contains('active')) {
+                // Wenn das Menü offen ist, sollen die Einstellungen editierbar bleiben,
+                // unabhängig vom gameActive-Status des (evtl. pausierten) Hintergrundspiels.
+                // Der "Start"-Button wird das Spiel dann ohnehin neu initialisieren.
+                updateSettingsAccess(false);
+            } else {
+                // Dieser Fall sollte nicht eintreten, da man das Set nur ändern kann, wenn das Menü offen ist.
+                // Aber zur Sicherheit die ursprüngliche Logik beibehalten.
+                updateSettingsAccess(gameActive);
+            }
+            // --- ENDE DER ÄNDERUNG ---
         }
 
         async function loadSet(setId) {
@@ -821,13 +832,13 @@
                 }
                 if (gameActive) {
                     disableBoardInteraction(true);
-                    updateSettingsAccess(false);
+                    updateSettingsAccess(false); // Wichtig: Einstellungen im Menü freigeben
                     gameWasPausedByMenu = true;
                     if ('speechSynthesis' in window && speechSynthesis.speaking) {
                          speechSynthesis.cancel();
                     }
                 } else {
-                     updateSettingsAccess(false);
+                     updateSettingsAccess(false); // Auch wenn kein Spiel aktiv ist, Menü-Settings freigeben
                 }
             } else {
                 settingsMenu.classList.remove('active');
@@ -838,16 +849,16 @@
                     if (!firstLoad) {
                          disableBoardInteraction(false);
                     }
-                    updateSettingsAccess(true);
+                    updateSettingsAccess(true); // Einstellungen wieder basierend auf Spielstatus sperren
                     gameWasPausedByMenu = false;
                 } else if (!gameActive && firstLoad) {
                      disableBoardInteraction(false);
                      gameBoardElement.classList.remove('initial-focus-menu');
                      firstLoad = false;
-                     updateSettingsAccess(false);
+                     updateSettingsAccess(false); // Einstellungen freigegeben lassen
                 } else if (!gameActive && !endGameDisplay.classList.contains('visible')) {
                      disableBoardInteraction(false);
-                     updateSettingsAccess(false);
+                     updateSettingsAccess(false); // Einstellungen freigegeben lassen
                 }
                  updateButtonStates(gameActive);
             }
@@ -966,7 +977,7 @@
                 if (defaultOption) { defaultOption.textContent = "TTS nicht unterstützt"; }
             } else if (gameIsRunning) {
                 voiceSelect.disabled = true;
-            } else {
+            } else { // gameIsRunning ist false (oder wir sind im Menü und haben es explizit auf false gesetzt)
                  voiceSelect.disabled = !voicesLoaded || !availableVoices.some(v => v.lang.startsWith('de'));
                   if (!voicesLoaded && voiceSelect.options.length > 0 && !voiceSelect.options[0].textContent.includes("geladen")) {
                      const defaultOption = voiceSelect.options[0];
