@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Plapperschlange</title>
+
+    <!-- Google Font Comfortaa einbinden -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
         html {
             height: 100%;
@@ -16,7 +22,7 @@
         }
 
         body {
-            font-family: sans-serif;
+            font-family: 'Comfortaa', sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -32,9 +38,12 @@
             padding-bottom: env(safe-area-inset-bottom, 0px);
         }
 
+        button, select, input, textarea {
+            font-family: 'Comfortaa', sans-serif;
+        }
+
         .menu-toggle-button {
             position: fixed;
-            /* Positionierung relativ zu den Safe Areas */
             top: calc(env(safe-area-inset-top, 0px) + 10px);
             right: calc(env(safe-area-inset-right, 0px) + 10px);
             z-index: 1002;
@@ -55,11 +64,11 @@
 
         .settings-menu {
             position: fixed;
-            top: 0; /* Menü füllt von ganz oben */
+            top: 0;
             left: 0;
             width: 280px;
             max-width: 80%;
-            height: 100vh; /* Volle Viewport-Höhe */
+            height: 100vh;
             background-color: #f8f9fa;
             box-shadow: none;
             transform: translateX(-100%);
@@ -68,7 +77,6 @@
             display: flex;
             flex-direction: column;
             box-sizing: border-box;
-            /* Inneres Padding des Menüs, um Safe Areas zu berücksichtigen */
             padding-top: calc(env(safe-area-inset-top, 0px) + 15px);
             padding-left: calc(env(safe-area-inset-left, 0px) + 15px);
             padding-right: calc(env(safe-area-inset-right, 0px) + 15px);
@@ -114,7 +122,7 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
-            margin-bottom: 30px; /* Abstand zum Footer darunter */
+            margin-bottom: 30px;
         }
         .settings-menu-content .settings > div {
             display: flex;
@@ -143,7 +151,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 15px; /* Abstand zwischen Start- und Info-Button */
+            gap: 15px;
             flex-shrink: 0;
         }
 
@@ -223,15 +231,24 @@
         h1 {
             color: #94bbb5;
             margin-top: 0;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
 
-        .container h2 { /* Wird für Set-Namen verwendet */
-            font-size: 1.0em;
+        .game-subtitle {
+            font-size: 1.4em;
+            color: #beb898;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-weight: normal;
+            line-height: 1.4;
+        }
+
+        .container h2 {
+            font-size: 0.9em;
             color: #999999;
             margin-top: 0;
             margin-bottom: 20px;
-            min-height: 1.2em; /* Platzhalter für den Text */
+            min-height: 1.2em;
         }
 
         .game-board {
@@ -259,17 +276,98 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2.5em;
             cursor: pointer;
             transition: transform 0.1s ease-out, background-color 0.1s ease-out, filter 0.3s ease-out;
             user-select: none;
+            padding: 5px; /* Generelles Padding für den Tile-Inhalt */
+            /* aspect-ratio: 1 / 1;  Wird durch game-board Grid schon erzwungen */
         }
+
+        .multi-emoji-container {
+            display: grid;
+            width: 100%;
+            height: 100%;
+            gap: 2px; /* Kleiner Abstand zwischen den Emojis, optional */
+            align-items: center; /* Vertikal zentrieren der Grid-Zellen-Inhalte */
+            justify-items: center; /* Horizontal zentrieren der Grid-Zellen-Inhalte */
+        }
+
+        .emoji-instance {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            text-align: center;
+            overflow: hidden; /* Falls Emojis doch zu groß sind, abschneiden */
+            width: 100%; /* Fülle die Grid-Zelle aus */
+            height: 100%; /* Fülle die Grid-Zelle aus */
+        }
+
+        /* --- Styling basierend auf der Anzahl der Emojis --- */
+        .multi-emoji-container.emoji-count-1 {
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr;
+        }
+        .multi-emoji-container.emoji-count-1 .emoji-instance {
+            font-size: 2.8em; /* Anpassen nach Bedarf */
+        }
+
+        .multi-emoji-container.emoji-count-2 {
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: 1fr;
+        }
+        .multi-emoji-container.emoji-count-2 .emoji-instance {
+            font-size: 2em; /* Anpassen */
+        }
+        /* Alternative für 2 Emojis untereinander:
+        .multi-emoji-container.emoji-count-2 {
+            grid-template-columns: 1fr;
+            grid-template-rows: repeat(2, 1fr);
+        }
+        */
+
+        /* Für 3 Emojis - Variante: Drei nebeneinander */
+        .multi-emoji-container.emoji-count-3 {
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: 1fr;
+        }
+        .multi-emoji-container.emoji-count-3 .emoji-instance {
+            font-size: 1.7em; /* Anpassen */
+        }
+        /* Komplexere Variante für 3 Emojis (2 oben, 1 unten zentriert):
+        .multi-emoji-container.emoji-count-3 {
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+        }
+        .multi-emoji-container.emoji-count-3 .emoji-instance:nth-child(1) { grid-area: 1 / 1 / 2 / 2; }
+        .multi-emoji-container.emoji-count-3 .emoji-instance:nth-child(2) { grid-area: 1 / 2 / 2 / 3; }
+        .multi-emoji-container.emoji-count-3 .emoji-instance:nth-child(3) { grid-area: 2 / 1 / 3 / 3; } // Spannt über beide Spalten
+        .multi-emoji-container.emoji-count-3 .emoji-instance {
+            font-size: 1.7em;
+        }
+        */
+
+        .multi-emoji-container.emoji-count-4 {
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+        }
+        .multi-emoji-container.emoji-count-4 .emoji-instance {
+            font-size: 1.5em; /* Anpassen */
+        }
+
+
         .tile.active {
             background-color: #007bff;
-            color: white;
+            color: white; /* Gilt für den Text im Tile selbst, nicht unbedingt die Emojis direkt */
             border-color: #0056b3;
             animation: pulse 0.4s ease-out;
         }
+        /* Wenn Emojis bei .active eine andere Farbe bekommen sollen, spezifischer ansprechen:
+        .tile.active .emoji-instance {
+             color: white; // Beispiel
+        }
+        */
+
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(0.5); }
@@ -281,6 +379,11 @@
             animation: shakeError 0.4s cubic-bezier(.36,.07,.19,.97) both;
             transform: translate3d(0, 0, 0);
         }
+        /*
+        .tile.error-input .emoji-instance {
+            color: white !important; // Beispiel
+        }
+        */
         @keyframes shakeError {
           10%, 90% { transform: translate3d(-1px, 0, 0); }
           20%, 80% { transform: translate3d(2px, 0, 0); }
@@ -389,8 +492,36 @@
         .close-info-button:hover { background-color: #5a6268; }
 
 
+        @media (max-width: 400px) { /* Angepasster Breakpoint für feinere Emoji-Größen */
+            .multi-emoji-container.emoji-count-1 .emoji-instance {
+                font-size: 2.2em;
+            }
+            .multi-emoji-container.emoji-count-2 .emoji-instance {
+                font-size: 1.6em;
+            }
+            .multi-emoji-container.emoji-count-3 .emoji-instance {
+                font-size: 1.3em;
+            }
+            .multi-emoji-container.emoji-count-4 .emoji-instance {
+                font-size: 1.2em;
+            }
+        }
+
         @media (max-width: 320px) {
-            .tile { font-size: 2em; }
+            /* .tile { font-size: 2em; } Alte Regel, nicht mehr direkt relevant */
+            .multi-emoji-container.emoji-count-1 .emoji-instance {
+                font-size: 2em;
+            }
+            .multi-emoji-container.emoji-count-2 .emoji-instance {
+                font-size: 1.4em;
+            }
+            .multi-emoji-container.emoji-count-3 .emoji-instance {
+                font-size: 1.1em;
+            }
+            .multi-emoji-container.emoji-count-4 .emoji-instance {
+                font-size: 1em;
+            }
+
             .container {
                 padding-top: 30px; padding-right: 15px; padding-left: 15px; padding-bottom: 60px; margin-top: 50px;
             }
@@ -464,7 +595,8 @@
 
     <div class="container">
         <h1>Plapperschlange</h1>
-        <h2 id="gameSetTitle">Wird geladen...</h2> <!-- ID hinzugefügt für Set-Titel -->
+        <p class="game-subtitle">Zischlaute</p>
+        <h2 id="gameSetTitle">Wird geladen...</h2>
         <div class="game-board" id="gameBoard">
             <div class="board-overlay" id="boardOverlay"></div>
             <div class="end-game-display" id="endGameDisplay">
@@ -487,7 +619,7 @@
         <div class="info-modal-content">
             <h2 id="infoModalTitle">Informationen für Eltern</h2>
             <p>
-                Liebe Eltern, mit der "Plapperschlange" können Sie spielerisch das <strong>auditive Gedächtnis</strong>
+                Liebe Eltern, mit der "Plapperschlange" können Sie spielerisch das <strong>auditive Gedächtnis</strong>, die <strong>Aussprache</strong>
                 und die <strong>Konzentrationsfähigkeit</strong> Ihres Kindes fördern. Dieses Spiel hilft dabei, gehörte Wortsequenzen
                 kurzzeitig zu speichern und korrekt wiederzugeben.
             </p>
@@ -504,7 +636,7 @@
                     gibt Ihrem Kind mehr Zeit, jedes Wort zu verarbeiten, bevor das nächste kommt. Experimentieren Sie,
                     welcher Abstand für Ihr Kind am besten passt. Ein kürzerer Abstand erhöht den Schwierigkeitsgrad.</li>
                 <li><strong>Stimme:</strong> Lassen Sie Ihr Kind eine Stimme auswählen, die es als angenehm empfindet.
-                    Eine vertraute oder klare Stimme kann das Zuhören erleichtern.</li>
+                    Eine vertraute oder klare Stimme kann das Zuhören erleichtern. (Hinweis: Die Auswahl der Stimmen hängt vom Browser und Betriebssystem ab.)</li>
             </ul>
             <p>
                 Beobachten Sie Ihr Kind beim Spielen: Hat es Spaß? Ist es frustriert oder unterfordert?
@@ -545,8 +677,8 @@
         const endGameMessageElement = endGameDisplay.querySelector('.message');
         const playAgainButtonElement = endGameDisplay.querySelector('.play-again-button');
 
-        const gameSetSelect = document.getElementById('gameSetSelect'); // NEU
-        const gameSetTitleElement = document.getElementById('gameSetTitle'); // NEU
+        const gameSetSelect = document.getElementById('gameSetSelect');
+        const gameSetTitleElement = document.getElementById('gameSetTitle');
         const sequenceLengthSelect = document.getElementById('sequenceLength');
         const numRoundsSelect = document.getElementById('numRounds');
         const wordSpacingSelect = document.getElementById('wordSpacing');
@@ -559,9 +691,9 @@
         const closeInfoModalButton = document.getElementById('closeInfoModalButton');
 
         // Spielzustandsvariablen
-        let EMOJIS_DATA = []; // Wird durch geladenes Set gefüllt
-        let allAvailableSets = []; // Wird mit Inhalt von sets_manifest.json gefüllt
-        let currentSetInfo = null; // Enthält {id, name, file} des aktuellen Sets
+        let EMOJIS_DATA = [];
+        let allAvailableSets = [];
+        let currentSetInfo = null;
 
         let currentSequence = [];
         let playerSequence = [];
@@ -591,19 +723,17 @@
             return audioContext;
         }
 
-        // NEUE FUNKTIONEN FÜR SET-MANAGEMENT
         async function initializeGameSets() {
             try {
-                const response = await fetch('sets_manifest.json'); // Pfad zum Manifest
+                const response = await fetch('sets_manifest.json');
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 allAvailableSets = await response.json();
 
                 populateSetSelector();
                 if (allAvailableSets.length > 0) {
-                    // Lade das erste Set als Standard oder ein gespeichertes Set
                     const savedSetId = localStorage.getItem('selectedGameSetId');
                     const setToLoad = allAvailableSets.find(s => s.id === savedSetId) || allAvailableSets[0];
-                    gameSetSelect.value = setToLoad.id; // Wähle es im Dropdown aus
+                    gameSetSelect.value = setToLoad.id;
                     await loadSet(setToLoad.id);
                 } else {
                     gameSetTitleElement.textContent = "Keine Spielsets gefunden.";
@@ -621,7 +751,7 @@
         }
 
         function populateSetSelector() {
-            gameSetSelect.innerHTML = ''; // Alte Optionen entfernen
+            gameSetSelect.innerHTML = '';
             allAvailableSets.forEach(set => {
                 const option = document.createElement('option');
                 option.value = set.id;
@@ -633,20 +763,21 @@
 
         async function handleSetSelectionChange(event) {
             const selectedSetId = event.target.value;
-            localStorage.setItem('selectedGameSetId', selectedSetId); // Auswahl speichern
+            localStorage.setItem('selectedGameSetId', selectedSetId);
 
             if (gameActive) {
-                // Informieren, dass "Start" geklickt werden muss, um das neue Set zu verwenden.
-                // Die UI wird durch loadSet() aktualisiert, aber das Spiel läuft weiter mit dem alten Set,
-                // bis handleApplySettingsAndStart() aufgerufen wird.
                 const selectedSet = allAvailableSets.find(s => s.id === selectedSetId);
                  if (selectedSet) {
                     gameSetTitleElement.textContent = selectedSet.name + " (Start drücken zum Anwenden)";
                 }
             } else {
-                await loadSet(selectedSetId); // Set direkt laden, wenn kein Spiel aktiv ist
+                await loadSet(selectedSetId);
             }
-            updateSettingsAccess(gameActive); // Zugriff auf Set-Select ggf. anpassen
+            if (settingsMenu.classList.contains('active')) {
+                updateSettingsAccess(false);
+            } else {
+                updateSettingsAccess(gameActive);
+            }
         }
 
         async function loadSet(setId) {
@@ -661,16 +792,18 @@
 
             try {
                 gameSetTitleElement.textContent = `Lade ${currentSetInfo.name}...`;
-                const response = await fetch(currentSetInfo.file); // Pfad zur Set-Datei
+                const response = await fetch(currentSetInfo.file);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status} für ${currentSetInfo.file}`);
                 EMOJIS_DATA = await response.json();
 
                 if (!Array.isArray(EMOJIS_DATA) || EMOJIS_DATA.length === 0) {
                      throw new Error(`Set-Datei ${currentSetInfo.file} ist leer oder nicht korrekt formatiert.`);
                 }
-                // Validierung: Hat jedes Item eine id, ein emoji und ein word?
-                if (EMOJIS_DATA.some(item => typeof item.id === 'undefined' || !item.emoji || !item.word)) {
-                    throw new Error(`Ein oder mehrere Items im Set ${currentSetInfo.file} haben fehlende Eigenschaften (id, emoji, word).`);
+                // Anpassung der Validierung: emojis (Array) oder emoji (String) und word müssen vorhanden sein
+                if (EMOJIS_DATA.some(item => typeof item.id === 'undefined' ||
+                    (!item.emojis && !item.emoji) || // Entweder emojis Array oder emoji String
+                    !item.word)) {
+                    throw new Error(`Ein oder mehrere Items im Set ${currentSetInfo.file} haben fehlende Eigenschaften (id, emojis/emoji, word).`);
                 }
 
 
@@ -681,15 +814,13 @@
                 console.error(`Konnte Set "${currentSetInfo.name}" (${currentSetInfo.file}) nicht laden oder verarbeiten:`, error);
                 gameSetTitleElement.textContent = `Fehler: ${currentSetInfo.name} konnte nicht geladen werden.`;
                 EMOJIS_DATA = [];
-                populateBoard(); // Leeres Board oder Fehlermeldung anzeigen
+                populateBoard();
                 return false;
             }
         }
-        // ENDE NEUE FUNKTIONEN FÜR SET-MANAGEMENT
-
 
         document.addEventListener('DOMContentLoaded', async () => {
-            await initializeGameSets(); // Lädt Manifest und initiales Set
+            await initializeGameSets();
             initializeVoiceSelection();
 
             menuToggleButton.addEventListener('click', () => toggleMenu());
@@ -719,88 +850,142 @@
             settingsMenu.setAttribute('aria-hidden', 'true');
             menuToggleButton.setAttribute('aria-expanded', 'false');
 
-            if (firstLoad && allAvailableSets.length > 0) { // Nur Menü öffnen, wenn Sets geladen wurden
+            if (firstLoad && allAvailableSets.length > 0) {
                 toggleMenu(true);
                 gameBoardElement.classList.add('initial-focus-menu');
             }
-            updateSettingsAccess(false); // Wird auch den Set-Selector initial disablen/enablen
+            updateSettingsAccess(false);
         });
 
         function initializeVoiceSelection() {
-            if ('speechSynthesis' in window) {
-                const populateVoices = () => {
-                    availableVoices = speechSynthesis.getVoices();
-                    const germanVoices = availableVoices.filter(voice => voice.lang.startsWith('de'));
-                    voiceSelect.innerHTML = '<option value="">Standard (Browser)</option>';
-                    if (germanVoices.length > 0) {
-                        germanVoices.forEach(voice => {
-                            const option = document.createElement('option');
-                            option.value = voice.voiceURI;
-                            option.textContent = `${voice.name} (${voice.lang})`;
-                            voiceSelect.appendChild(option);
-                        });
-                        const savedVoiceURI = localStorage.getItem('selectedVoiceURI');
-                        if (savedVoiceURI && germanVoices.some(v => v.voiceURI === savedVoiceURI)) {
-                            voiceSelect.value = savedVoiceURI;
-                            selectedVoice = germanVoices.find(v => v.voiceURI === savedVoiceURI);
-                        } else if (germanVoices.length > 0) {
-                             // Kein automatisches Vorwählen mehr, Nutzer soll bewusst Standard oder andere wählen
-                            // voiceSelect.value = germanVoices[0].voiceURI;
-                            // selectedVoice = germanVoices[0];
+            const populateVoices = () => {
+                availableVoices = speechSynthesis.getVoices();
+                if (!availableVoices || availableVoices.length === 0) {
+                    setTimeout(() => {
+                        availableVoices = speechSynthesis.getVoices();
+                        if (!availableVoices || availableVoices.length === 0) {
+                            console.warn("Keine Stimmen nach erneutem Versuch geladen.");
+                            voiceSelect.innerHTML = '<option value="">Keine Stimmen verfügbar</option>';
+                            voiceSelect.disabled = true;
+                            updateSettingsAccess(gameActive);
+                            return;
                         }
-                    } else {
-                         voiceSelect.innerHTML = '<option value="">Keine dt. Stimme verfügbar</option>';
-                    }
-                    updateSettingsAccess(gameActive);
+                        processVoices();
+                    }, 200);
+                } else {
+                    processVoices();
+                }
+            };
+
+            const processVoices = () => {
+                let germanVoices = availableVoices.filter(voice => voice.lang.startsWith('de'));
+                voiceSelect.innerHTML = '';
+                const defaultOption = document.createElement('option');
+                defaultOption.value = "";
+                defaultOption.textContent = "Standard (Browser)";
+                voiceSelect.appendChild(defaultOption);
+
+                if (germanVoices.length > 0) {
+                    germanVoices.forEach(voice => {
+                        const option = document.createElement('option');
+                        option.value = voice.voiceURI;
+                        option.textContent = `${voice.name || voice.voiceURI} (${voice.lang})`;
+                        if (voice.default) option.textContent += " - Browser-Standard";
+                        voiceSelect.appendChild(option);
+                    });
+                    const savedVoiceURI = localStorage.getItem('selectedVoiceURI');
+                    if (savedVoiceURI) {
+                        const foundSavedVoice = germanVoices.find(v => v.voiceURI === savedVoiceURI);
+                        if (foundSavedVoice) {
+                            voiceSelect.value = savedVoiceURI;
+                            selectedVoice = foundSavedVoice;
+                        } else {
+                            selectedVoice = null; localStorage.removeItem('selectedVoiceURI'); voiceSelect.value = "";
+                        }
+                    } else { selectedVoice = null; voiceSelect.value = ""; }
+                    voiceSelect.disabled = false;
+                } else {
+                    defaultOption.textContent = "Keine dt. Stimme verfügbar"; // Überschreibe Standard, wenn keine dt. da
+                    voiceSelect.disabled = true; selectedVoice = null; localStorage.removeItem('selectedVoiceURI');
+                }
+                updateSettingsAccess(gameActive);
+            };
+
+            if ('speechSynthesis' in window) {
+                speechSynthesis.onvoiceschanged = () => {
+                     if (!availableVoices || availableVoices.length === 0) populateVoices();
                 };
-                speechSynthesis.onvoiceschanged = populateVoices; // Sicherstellen, dass das Event gebunden ist
-                populateVoices(); // Initial aufrufen, falls Stimmen schon da sind
+                populateVoices();
             } else {
                 voiceSelect.innerHTML = '<option value="">TTS nicht unterstützt</option>';
                 voiceSelect.disabled = true;
             }
         }
 
-
         function handleVoiceChange() {
             const selectedURI = voiceSelect.value;
             if (selectedURI === "") {
                 selectedVoice = null;
                 localStorage.removeItem('selectedVoiceURI');
+                speak("Standardstimme ausgewählt.");
             } else {
                 selectedVoice = availableVoices.find(voice => voice.voiceURI === selectedURI);
-                if (selectedVoice) localStorage.setItem('selectedVoiceURI', selectedVoice.voiceURI);
+                if (selectedVoice) {
+                    localStorage.setItem('selectedVoiceURI', selectedVoice.voiceURI);
+                    speak(`Stimme ${selectedVoice.name} ausgewählt.`);
+                } else {
+                    selectedVoice = null; localStorage.removeItem('selectedVoiceURI'); voiceSelect.value = "";
+                    speak("Ausgewählte Stimme nicht gefunden, Standard wird verwendet.");
+                }
             }
-            if (selectedVoice) speak(`Stimme ${selectedVoice.name} ausgewählt.`);
-            else speak("Standardstimme ausgewählt.");
         }
 
         function populateBoard() {
-            // Entferne nur Tiles, nicht Overlay oder End-Game-Display
             gameBoardElement.querySelectorAll('.tile').forEach(tile => tile.remove());
-
-            if (!EMOJIS_DATA || EMOJIS_DATA.length === 0) {
-                // Optional: Nachricht anzeigen, wenn keine Daten da sind
-                // console.warn("populateBoard aufgerufen, aber EMOJIS_DATA ist leer.");
-                // Man könnte hier eine Platzhaltermeldung im gameBoardElement anzeigen
-                return;
-            }
+            if (!EMOJIS_DATA || EMOJIS_DATA.length === 0) return;
 
             EMOJIS_DATA.forEach(item => {
                 const tile = document.createElement('div');
                 tile.classList.add('tile');
                 tile.dataset.id = item.id;
-                tile.textContent = item.emoji;
+
+                const emojiContainer = document.createElement('div');
+                emojiContainer.classList.add('multi-emoji-container');
+
+                let emojisToDisplay = [];
+                if (Array.isArray(item.emojis) && item.emojis.length > 0) {
+                    emojisToDisplay = item.emojis;
+                } else if (typeof item.emoji === 'string' && item.emoji.trim() !== '') { // Fallback für einzelnes Emoji als String
+                    emojisToDisplay = [item.emoji];
+                }
+
+                if (emojisToDisplay.length > 0) {
+                    emojiContainer.classList.add(`emoji-count-${emojisToDisplay.length}`);
+                    emojisToDisplay.forEach(emojiChar => {
+                        const emojiSpan = document.createElement('span');
+                        emojiSpan.classList.add('emoji-instance');
+                        emojiSpan.textContent = emojiChar;
+                        emojiContainer.appendChild(emojiSpan);
+                    });
+                } else {
+                    console.warn("Keine Emojis für Item gefunden oder Item-Format ungültig:", item.id, item);
+                    // Optional: Platzhalter-Text oder leeres Tile
+                    emojiContainer.classList.add('emoji-count-0'); // Für evtl. spezielles Styling
+                    // emojiContainer.textContent = '?';
+                }
+
+                tile.appendChild(emojiContainer);
                 tile.addEventListener('click', () => handleTileClick(item.id));
-                // Füge Kacheln vor dem Overlay und End-Game-Display ein
-                const referenceNode = boardOverlay || endGameDisplay; // Finde erstes vorhandenes Element
+
+                const referenceNode = boardOverlay || endGameDisplay;
                 if (referenceNode && referenceNode.parentNode === gameBoardElement) {
                      gameBoardElement.insertBefore(tile, referenceNode);
                 } else {
-                     gameBoardElement.appendChild(tile); // Fallback
+                     gameBoardElement.appendChild(tile);
                 }
             });
         }
+
 
         function toggleMenu(forceOpen = null) {
             const isOpen = settingsMenu.classList.contains('active');
@@ -821,13 +1006,13 @@
                 }
                 if (gameActive) {
                     disableBoardInteraction(true);
-                    updateSettingsAccess(false); // Alle Settings sperren, wenn Menü offen ist
+                    updateSettingsAccess(false);
                     gameWasPausedByMenu = true;
                     if ('speechSynthesis' in window && speechSynthesis.speaking) {
                          speechSynthesis.cancel();
                     }
                 } else {
-                     updateSettingsAccess(false); // Alle Settings sperren, wenn Menü offen ist
+                     updateSettingsAccess(false);
                 }
             } else {
                 settingsMenu.classList.remove('active');
@@ -838,16 +1023,16 @@
                     if (!firstLoad) {
                          disableBoardInteraction(false);
                     }
-                    updateSettingsAccess(true); // Nur Spiel-relevante Settings sperren
+                    updateSettingsAccess(true);
                     gameWasPausedByMenu = false;
                 } else if (!gameActive && firstLoad) {
                      disableBoardInteraction(false);
                      gameBoardElement.classList.remove('initial-focus-menu');
                      firstLoad = false;
-                     updateSettingsAccess(false); // Alle Settings freigeben
+                     updateSettingsAccess(false);
                 } else if (!gameActive && !endGameDisplay.classList.contains('visible')) {
                      disableBoardInteraction(false);
-                     updateSettingsAccess(false); // Alle Settings freigeben
+                     updateSettingsAccess(false);
                 }
                  updateButtonStates(gameActive);
             }
@@ -864,14 +1049,14 @@
             endGameMessageElement.textContent = '';
 
             const selectedSetId = gameSetSelect.value;
-            const loadSuccess = await loadSet(selectedSetId); // Sicherstellen, dass das gewählte Set geladen ist
+            const loadSuccess = await loadSet(selectedSetId);
             if (!loadSuccess || EMOJIS_DATA.length === 0) {
                 gameSetTitleElement.textContent = "Fehler: Set konnte nicht für Spielstart geladen werden.";
-                toggleMenu(false); // Menü schließen
-                return; // Spiel nicht starten
+                toggleMenu(false); // Menü schließen, damit Nutzer Fehlermeldung sieht
+                return;
             }
 
-            toggleMenu(false); // Menü schließen NACH erfolgreichem Laden
+            toggleMenu(false);
             if (gameActive) {
                 await abortGame(false);
             }
@@ -883,35 +1068,34 @@
                  endGameDisplay.classList.remove('visible');
             }
             endGameMessageElement.textContent = '';
-            // Das aktuelle Set (EMOJIS_DATA) sollte noch geladen sein.
-            // Falls nicht oder zur Sicherheit:
-            // const selectedSetId = gameSetSelect.value;
-            // await loadSet(selectedSetId);
             if (EMOJIS_DATA.length === 0) {
                 console.error("Keine Set-Daten für 'Nochmal spielen' vorhanden.");
                 gameSetTitleElement.textContent = "Fehler: Bitte Set auswählen und starten.";
                 return;
             }
-            await abortGame(false);
+            await abortGame(false); // Spiel sauber beenden, bevor es neu gestartet wird
             await startGame();
         }
 
         async function startGame() {
-            if (gameActive) return;
+            if (gameActive) return; // Verhindere doppelten Start
             if (EMOJIS_DATA.length === 0) {
                 console.error("Versuch, Spiel ohne EMOJI_DATA zu starten.");
                 gameSetTitleElement.textContent = "Fehler: Bitte valides Set auswählen.";
-                updateSettingsAccess(false); // Einstellungen freigeben
+                updateSettingsAccess(false); // Einstellungen freigeben, um Korrektur zu ermöglichen
                 return;
             }
             gameActive = true;
-            endGameMessageElement.textContent = '';
-            await ensureAudioContext();
+            endGameMessageElement.textContent = ''; // Alte Endspielnachrichten löschen
+            await ensureAudioContext(); // Sicherstellen, dass der AudioContext bereit ist
+
             sequenceLength = parseInt(sequenceLengthSelect.value);
             totalRounds = parseInt(numRoundsSelect.value);
             wordSpacing = parseInt(wordSpacingSelect.value);
+
             currentRound = 0; correctRounds = 0; playerSequence = []; roundAttempts = 0;
-            gameWasPausedByMenu = false;
+            gameWasPausedByMenu = false; // Zurücksetzen für den neuen Spielstart
+
             updateButtonStates(true);
             updateSettingsAccess(true);
             initializeProgressCircles(totalRounds);
@@ -919,78 +1103,91 @@
         }
 
         async function abortGame(showMessage = true) {
-            const wasActuallyActive = gameActive;
-            gameActive = false;
-            gameWasPausedByMenu = false;
-            currentSequence = []; playerSequence = [];
-            if (!settingsMenu.classList.contains('active')) {
-                disableBoardInteraction(false);
+            const wasActuallyActive = gameActive; // Merken, ob das Spiel wirklich aktiv war
+            gameActive = false; // Spiel als inaktiv markieren
+            gameWasPausedByMenu = false; // Zurücksetzen
+            currentSequence = []; playerSequence = []; // Sequenzen leeren
+
+            if (!settingsMenu.classList.contains('active')) { // Nur wenn Menü nicht offen ist
+                disableBoardInteraction(false); // Board-Interaktion wieder erlauben
             }
-            updateButtonStates(false);
-            updateSettingsAccess(false); // Gibt alle Einstellungen frei, auch Set-Auswahl
-            clearProgressCircles();
+            updateButtonStates(false); // Buttons aktualisieren
+            updateSettingsAccess(false); // Einstellungen freigeben
+            clearProgressCircles(); // Fortschrittskreise leeren
+
+            // Aktive Hervorhebungen von Kacheln entfernen
             document.querySelectorAll('.tile.active, .tile.error-input').forEach(t => {
-                t.classList.remove('active'); t.classList.remove('error-input');
+                t.classList.remove('active', 'error-input');
             });
-            if (showMessage && wasActuallyActive) {
+
+            if (showMessage && wasActuallyActive) { // Nur Nachricht zeigen, wenn Spiel lief
                 endGameMessageElement.textContent = 'Spiel abgebrochen.';
                 endGameDisplay.classList.add('visible');
-                endGameDisplay.querySelector('.emoji-icon').style.display = 'none';
-                playAgainButtonElement.style.display = 'none';
-            } else {
+                if (endGameDisplay.querySelector('.emoji-icon')) {
+                    endGameDisplay.querySelector('.emoji-icon').style.display = 'none';
+                }
+                if (playAgainButtonElement) {
+                     playAgainButtonElement.style.display = 'none';
+                }
+            } else { // Keine Nachricht oder Spiel war nicht aktiv
                  endGameMessageElement.textContent = '';
                  endGameDisplay.classList.remove('visible');
-                 endGameDisplay.querySelector('.emoji-icon').style.display = '';
-                 playAgainButtonElement.style.display = '';
+                 if (endGameDisplay.querySelector('.emoji-icon')) {
+                    endGameDisplay.querySelector('.emoji-icon').style.display = ''; // Emoji Icon wieder normal
+                 }
+                 if (playAgainButtonElement) {
+                    playAgainButtonElement.style.display = ''; // Button wieder normal
+                 }
             }
+
+            // Laufende Sprachausgabe stoppen
             if ('speechSynthesis' in window && speechSynthesis.speaking) {
                  speechSynthesis.cancel();
-                 await sleep(50);
+                 await sleep(50); // Kurze Pause, damit cancel() wirken kann
             }
         }
 
         function updateButtonStates(isPlaying) {
             const isBoardBlocked = boardOverlay.style.display === 'block' && !gameWasPausedByMenu;
             repeatButton.disabled = !isPlaying || currentSequence.length === 0 || isBoardBlocked;
-            // Der Start-Button (applySettingsAndStartButton) wird durch updateSettingsAccess nicht direkt beeinflusst,
-            // aber er sollte immer aktiv sein, es sei denn, es gibt keine Sets.
+            // applySettingsAndStartButton sollte nicht vom Spielstatus abhängen, sondern von Set-Verfügbarkeit
             applySettingsAndStartButton.disabled = (allAvailableSets.length === 0);
         }
 
         function updateSettingsAccess(gameIsRunning) {
-            // Spielset-Auswahl: Immer möglich, wenn nicht gerade Menü offen ist und Spiel nicht aktiv
-            // oder wenn Menü offen ist und Spiel nicht aktiv.
-            // Gesperrt, wenn Spiel läuft UND Menü geschlossen ist.
-            // Wenn Menü offen ist, sind sowieso alle Einstellungen gesperrt (außerhalb dieser Funktion gesteuert).
-            gameSetSelect.disabled = gameIsRunning && !settingsMenu.classList.contains('active');
+            // Wenn das Menü offen ist, sind die Set-Auswahl und der Start-Button immer aktiv (außer es gibt keine Sets).
+            // Die anderen Einstellungen sind nur gesperrt, wenn ein Spiel läuft UND das Menü geschlossen ist.
+            const menuIsOpen = settingsMenu.classList.contains('active');
 
-            sequenceLengthSelect.disabled = gameIsRunning;
-            numRoundsSelect.disabled = gameIsRunning;
-            wordSpacingSelect.disabled = gameIsRunning;
+            gameSetSelect.disabled = (gameIsRunning && !menuIsOpen) || (allAvailableSets.length === 0);
+            sequenceLengthSelect.disabled = gameIsRunning && !menuIsOpen;
+            numRoundsSelect.disabled = gameIsRunning && !menuIsOpen;
+            wordSpacingSelect.disabled = gameIsRunning && !menuIsOpen;
 
             const ttsGenerallyAvailable = 'speechSynthesis' in window;
-            const voicesLoaded = availableVoices.length > 0;
+            const voicesLoaded = availableVoices && availableVoices.length > 0;
+            const germanVoicesAvailable = voicesLoaded && availableVoices.some(v => v.lang.startsWith('de'));
 
             if (!ttsGenerallyAvailable) {
                 voiceSelect.disabled = true;
                 const defaultOption = voiceSelect.querySelector('option[value=""]');
-                if (defaultOption) { defaultOption.textContent = "TTS nicht unterstützt"; }
-            } else if (gameIsRunning) {
+                if (defaultOption) defaultOption.textContent = "TTS nicht unterstützt";
+            } else if (gameIsRunning && !menuIsOpen) {
                 voiceSelect.disabled = true;
-            } else {
-                 voiceSelect.disabled = !voicesLoaded || !availableVoices.some(v => v.lang.startsWith('de'));
-                  if (!voicesLoaded && voiceSelect.options.length > 0 && !voiceSelect.options[0].textContent.includes("geladen")) {
-                     const defaultOption = voiceSelect.options[0];
-                     if (defaultOption && defaultOption.value === "") { defaultOption.textContent = "Stimmen werden geladen..."; }
-                  } else if (voicesLoaded && !availableVoices.some(v => v.lang.startsWith('de'))) {
-                     const defaultOption = voiceSelect.options[0];
-                      if (defaultOption && defaultOption.value === "") { defaultOption.textContent = "Keine dt. Stimme verfügbar"; }
-                  } else if (voicesLoaded && availableVoices.some(v => v.lang.startsWith('de')) && voiceSelect.options.length > 0 && !voiceSelect.options[0].textContent.includes("Standard (Browser)")) {
-                      const defaultOption = voiceSelect.options[0];
-                      if (defaultOption && defaultOption.value === "") { defaultOption.textContent = "Standard (Browser)"; }
-                  }
+            } else { // Spiel läuft nicht oder Menü ist offen
+                 voiceSelect.disabled = !voicesLoaded || !germanVoicesAvailable;
+                 const defaultOption = voiceSelect.querySelector('option[value=""]');
+                 if (defaultOption) {
+                     if (!voicesLoaded && !defaultOption.textContent.includes("geladen")) {
+                         defaultOption.textContent = "Stimmen werden geladen...";
+                     } else if (voicesLoaded && !germanVoicesAvailable) {
+                         defaultOption.textContent = "Keine dt. Stimme verfügbar";
+                     } else if (voicesLoaded && germanVoicesAvailable && !defaultOption.textContent.includes("Standard (Browser)")) {
+                         defaultOption.textContent = "Standard (Browser)";
+                     }
+                 }
             }
-             // Der Apply/Start Button sollte nur deaktiviert werden, wenn keine Sets geladen werden konnten
+            // Start-Button ist nur deaktiviert, wenn keine Sets da sind.
             applySettingsAndStartButton.disabled = (allAvailableSets.length === 0);
         }
 
@@ -1007,112 +1204,128 @@
         function updateProgressCircle(roundIndex, isCorrect) {
             const circles = progressCirclesContainer.children;
             if (circles[roundIndex]) {
-                circles[roundIndex].classList.remove('correct', 'incorrect');
+                circles[roundIndex].classList.remove('correct', 'incorrect'); // Alte Klassen entfernen
                 circles[roundIndex].classList.add(isCorrect ? 'correct' : 'incorrect');
             }
         }
         function disableBoardInteraction(disable) { boardOverlay.style.display = disable ? 'block' : 'none'; }
 
         async function nextRound() {
-            if (!gameActive) return;
+            if (!gameActive) return; // Spiel nicht aktiv, nichts tun
             if (currentRound >= totalRounds) {
-                await endGame(); return;
+                await endGame(); return; // Alle Runden gespielt
             }
-            playerSequence = []; roundAttempts = 0;
-            disableBoardInteraction(true);
-            repeatButton.disabled = true;
+            playerSequence = []; roundAttempts = 0; // Spielersequenz und Versuche zurücksetzen
+            disableBoardInteraction(true); // Board blockieren für Sequenzwiedergabe
+            repeatButton.disabled = true; // Wiederholbutton deaktivieren
+
             currentSequence = generateRandomSequence(sequenceLength);
-            await sleep(500);
+            await sleep(500); // Kurze Pause vor Sequenzstart
             await playSequence(currentSequence);
+
+            // Board nur freigeben, wenn Spiel noch aktiv und Menü nicht dazwischenkam
             if (gameActive && !gameWasPausedByMenu) {
                 disableBoardInteraction(false);
             }
-            updateButtonStates(gameActive);
+            updateButtonStates(gameActive); // Button-Status aktualisieren
         }
 
         function generateRandomSequence(length) {
             const sequence = [];
             if (!EMOJIS_DATA || EMOJIS_DATA.length === 0) {
                 console.error("Kann keine Sequenz generieren, EMOJIS_DATA ist leer.");
-                return []; // Leere Sequenz zurückgeben, um Fehler zu vermeiden
+                return []; // Leere Sequenz bei Fehler
             }
-            // Stelle sicher, dass die Länge nicht größer ist als die Anzahl verfügbarer Items
-            const maxLength = EMOJIS_DATA.length;
-            const actualLength = Math.min(length, maxLength);
+            const availableItems = [...EMOJIS_DATA]; // Kopie, um Original nicht zu verändern
+            const maxLength = availableItems.length;
+            const actualLength = Math.min(length, maxLength); // Nicht mehr Items ziehen als vorhanden
 
-            const availableIds = EMOJIS_DATA.map(item => item.id);
             for (let i = 0; i < actualLength; i++) {
-                // Für kurze Sequenzen und wenige Items kann es zu Wiederholungen kommen,
-                // wenn wir einfach zufällig ziehen. Für dieses Spiel ist das ok.
-                // Wenn keine Wiederholungen innerhalb einer Sequenz gewünscht sind,
-                // müsste man die `availableIds` nach jeder Auswahl anpassen.
-                const randomIndex = Math.floor(Math.random() * availableIds.length);
-                sequence.push(availableIds[randomIndex]);
+                if (availableItems.length === 0) break; // Sollte nicht passieren bei actualLength Logik
+                const randomIndex = Math.floor(Math.random() * availableItems.length);
+                sequence.push(availableItems[randomIndex].id); // Nur die ID speichern
+                availableItems.splice(randomIndex, 1); // Gezogenes Item entfernen für Einzigartigkeit in Sequenz
             }
             return sequence;
         }
 
         async function playSequence(sequence, isRepeat = false) {
             if ((!gameActive && !isRepeat) || !sequence || sequence.length === 0) return;
-            disableBoardInteraction(true);
-            repeatButton.disabled = true;
+            disableBoardInteraction(true); // Board blockieren
+            repeatButton.disabled = true; // Wiederholbutton deaktivieren
+
+            // Alte Hervorhebungen entfernen
             gameBoardElement.querySelectorAll('.tile.active, .tile.error-input').forEach(t => {
-                t.classList.remove('active'); t.classList.remove('error-input');
+                t.classList.remove('active', 'error-input');
             });
+
             for (const itemId of sequence) {
-                if ((!gameActive && !isRepeat)) break; // Überprüfung vor jedem Wort
+                if (!gameActive && !isRepeat && !gameWasPausedByMenu) break; // Abbruchbedingung
                 const itemData = EMOJIS_DATA.find(d => d.id === itemId);
                 const tileElement = gameBoardElement.querySelector(`.tile[data-id='${itemId}']`);
+
                 if (itemData && tileElement) {
                     tileElement.classList.add('active');
-                    await speak(itemData.word); // Warten bis gesprochen
-                    await sleep(100); // Kurze Pause nach dem Sprechen, bevor Kachel deaktiviert wird
+                    await speak(itemData.word); // Wort vorlesen
+                    await sleep(100); // Kurze Pause, damit die Hervorhebung sichtbar ist
                     tileElement.classList.remove('active');
                 }
-                if (gameActive || isRepeat) {
-                     await sleep(wordSpacing); // Pause zwischen Wörtern
+
+                // Pause zwischen Wörtern, aber nur wenn Spiel noch läuft etc.
+                if ((gameActive || isRepeat) && !gameWasPausedByMenu) {
+                     await sleep(wordSpacing);
                 } else { break; }
             }
-            if ((gameActive && !gameWasPausedByMenu) || isRepeat) { // Board freigeben, wenn Spiel noch aktiv oder es ein Repeat war
+
+            // Board nur freigeben, wenn Spiel noch aktiv und Menü nicht dazwischenkam (oder es ein Repeat war)
+            if ((gameActive && !gameWasPausedByMenu) || isRepeat) {
                  disableBoardInteraction(false);
             }
-            updateButtonStates(gameActive);
+            updateButtonStates(gameActive); // Button-Status aktualisieren
         }
 
         async function repeatCurrentSequence() {
+            // Board darf nicht blockiert sein (außer durch Pause-Menü, was hier nicht relevant sein sollte)
             const isBoardBlocked = boardOverlay.style.display === 'block' && !gameWasPausedByMenu;
             if (!gameActive || currentSequence.length === 0 || isBoardBlocked) return;
-            playerSequence = []; // Spielersequenz zurücksetzen für neue Eingabe
-            await playSequence(currentSequence, true);
+
+            playerSequence = []; // Spielersequenz zurücksetzen für neuen Versuch
+            await playSequence(currentSequence, true); // true für isRepeat
         }
 
         function speak(text) {
             return new Promise(async (resolve) => {
                 if (!('speechSynthesis' in window) || !text) { resolve(); return; }
-                // Warten, bis vorherige Äußerungen beendet sind oder abbrechen
+
+                // Aktuelle Sprachausgabe abbrechen, falls vorhanden
                 if (speechSynthesis.speaking) {
-                    // Option 1: Warten (kann zu Verzögerungen führen, wenn viele schnelle Aufrufe)
-                    // while (speechSynthesis.speaking) { await sleep(50); }
-                    // Option 2: Vorherige abbrechen (besser für schnelle Sequenzen)
                     speechSynthesis.cancel();
-                    await sleep(50); // Kurze Pause, damit cancel() wirken kann
+                    // Kurze Wartezeit, damit cancel() wirken kann, bevor neue Utterance gestartet wird
+                    await sleep(50);
                 }
 
                 const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'de-DE';
+                utterance.lang = 'de-DE'; // Sprache festlegen
+
+                // Ausgewählte oder Standard-Stimme verwenden
                 if (selectedVoice) {
                      utterance.voice = selectedVoice;
                 } else {
-                    const voices = speechSynthesis.getVoices(); // Erneut abrufen, falls sie sich geändert haben
+                    const voices = speechSynthesis.getVoices(); // Stimmen erneut abrufen für den Fall, dass sie sich geändert haben
                     const defaultGermanVoice = voices.find(v => v.lang.startsWith('de') && v.default) ||
-                                             voices.find(v => v.lang.startsWith('de'));
+                                             voices.find(v => v.lang.startsWith('de')); // Fallback auf erste deutsche Stimme
                     if (defaultGermanVoice) utterance.voice = defaultGermanVoice;
                 }
+
                 utterance.onend = () => resolve();
-                utterance.onerror = (event) => { console.error('TTS Error:', event.error, "Text:", text); resolve(); }; // Mehr Details bei Fehler
+                utterance.onerror = (event) => {
+                    console.error('TTS Error:', event.error, "Text:", text);
+                    resolve(); // Trotz Fehler resolven, damit das Spiel nicht hängt
+                };
                 speechSynthesis.speak(utterance);
             });
         }
+
 
         async function playClickSound() {
             const ctx = await ensureAudioContext();
@@ -1142,80 +1355,95 @@
             oscillator.start(ctx.currentTime);
             oscillator.stop(ctx.currentTime + duration);
             gainNode.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + duration);
-            await sleep(duration * 1000 + 50);
+            await sleep(duration * 1000 + 50); // Sicherstellen, dass der Sound abgespielt wurde
         }
 
         async function handleTileClick(itemId) {
-            if (!gameActive || boardOverlay.style.display === 'block' || endGameDisplay.classList.contains('visible') || currentSequence.length === 0) return;
-            playClickSound();
+            // Klick ignorieren, wenn Spiel nicht aktiv, Board blockiert, End-Display sichtbar oder keine Sequenz aktiv
+            if (!gameActive || boardOverlay.style.display === 'block' ||
+                endGameDisplay.classList.contains('visible') || currentSequence.length === 0) return;
+
+            playClickSound(); // Klick-Sound abspielen
             const tileElement = gameBoardElement.querySelector(`.tile[data-id='${itemId}']`);
             const currentClickIndex = playerSequence.length;
 
             if (currentClickIndex < currentSequence.length && itemId === currentSequence[currentClickIndex]) {
+                // Korrekter Klick
                 playerSequence.push(itemId);
                 if (tileElement) {
-                    tileElement.classList.add('active');
-                    setTimeout(() => tileElement.classList.remove('active'), 300);
+                    tileElement.classList.add('active'); // Kachel hervorheben
+                    setTimeout(() => tileElement.classList.remove('active'), 300); // Hervorhebung entfernen
                 }
                 if (playerSequence.length === currentSequence.length) {
+                    // Ganze Sequenz korrekt eingegeben
                     await evaluatePlayerInput(true);
                 }
             } else {
-                // Falsche Kachel geklickt oder zu viele Kacheln geklickt
+                // Falscher Klick
                 if (tileElement) {
-                    tileElement.classList.add('error-input');
-                    setTimeout(() => tileElement.classList.remove('error-input'), 600);
+                    tileElement.classList.add('error-input'); // Fehlerhervorhebung
+                    setTimeout(() => tileElement.classList.remove('error-input'), 600); // Hervorhebung entfernen
                 }
                 await evaluatePlayerInput(false);
             }
         }
 
         async function evaluatePlayerInput(isCorrectSequence) {
-            if (!gameActive) return;
-            disableBoardInteraction(true);
-            repeatButton.disabled = true;
+            if (!gameActive) return; // Spiel nicht aktiv, nichts tun
+            disableBoardInteraction(true); // Board blockieren für Auswertung
+            repeatButton.disabled = true;  // Wiederholbutton deaktivieren
 
             if (isCorrectSequence) {
                 updateProgressCircle(currentRound, true); correctRounds++;
-                await sleep(150); await playFixedRewardMelody(true);
-                currentRound++; playerSequence = []; roundAttempts = 0;
-                await sleep(500); await nextRound();
+                await sleep(150); // Kurze Pause
+                await playFixedRewardMelody(true); // Erfolgssound
+                currentRound++; playerSequence = []; roundAttempts = 0; // Nächste Runde vorbereiten
+                await sleep(500); // Pause vor nächster Runde
+                await nextRound();
             } else {
                 roundAttempts++;
-                updateProgressCircle(currentRound, false); // Markiert Runde als falsch
-                await playErrorSound();
+                updateProgressCircle(currentRound, false); // Fortschritt als falsch markieren
+                await playErrorSound(); // Fehlersound
+
                 if (roundAttempts >= MAX_ATTEMPTS_PER_ROUND) {
-                    await sleep(1000); // Kurze Pause, um Fehler zu realisieren
+                    // Maximale Versuche erreicht, nächste Runde
+                    await sleep(1000); // Längere Pause nach mehreren Fehlern
                     currentRound++; playerSequence = []; roundAttempts = 0;
-                    await nextRound(); // Nächste Runde starten, ohne die aktuelle zu wiederholen
+                    await nextRound();
                 } else {
-                    // Spieler hat noch Versuche für diese Runde
-                    playerSequence = []; // Eingabe zurücksetzen
-                    await sleep(1000);
-                    await playSequence(currentSequence, true); // Sequenz wiederholen
-                    // Board wird am Ende von playSequence freigegeben
+                    // Noch Versuche übrig, Sequenz wiederholen
+                    playerSequence = []; // Spielereingabe zurücksetzen
+                    await sleep(1000); // Pause vor Wiederholung
+                    await playSequence(currentSequence, true); // Sequenz wiederholen (isRepeat = true)
                 }
             }
         }
 
         async function endGame() {
-            const wasActuallyActive = gameActive;
-            gameActive = false; gameWasPausedByMenu = false;
-            disableBoardInteraction(false);
-            updateButtonStates(false); updateSettingsAccess(false);
-            // clearProgressCircles(); // Kreise können als Ergebnis sichtbar bleiben
-            if (wasActuallyActive) {
+            const wasActuallyActive = gameActive; // Merken, ob Spiel wirklich lief
+            gameActive = false; gameWasPausedByMenu = false; // Spiel beenden
+            disableBoardInteraction(false); // Board freigeben
+            updateButtonStates(false); updateSettingsAccess(false); // UI-Status aktualisieren
+
+            if (wasActuallyActive) { // Nur wenn das Spiel auch wirklich lief
                 const successRate = totalRounds > 0 ? (correctRounds / totalRounds) * 100 : 0;
                 const message = `Spiel beendet! ${correctRounds} von ${totalRounds} richtig (${successRate.toFixed(0)}%).`;
-                endGameDisplay.querySelector('.emoji-icon').style.display = '';
+
+                if (endGameDisplay.querySelector('.emoji-icon')) {
+                    endGameDisplay.querySelector('.emoji-icon').style.display = ''; // Emoji Icon anzeigen
+                }
                 endGameMessageElement.textContent = message;
-                playAgainButtonElement.style.display = '';
-                endGameDisplay.classList.add('visible');
-                await sleep(100); await playFixedRewardMelody(false);
+                if (playAgainButtonElement) {
+                     playAgainButtonElement.style.display = ''; // "Nochmal spielen" Button anzeigen
+                }
+                endGameDisplay.classList.add('visible'); // End-Display einblenden
+                await sleep(100); // Kurze Pause
+                await playFixedRewardMelody(false); // End-Melodie (false für längere Melodie)
             } else {
-                 endGameDisplay.classList.remove('visible');
+                 endGameDisplay.classList.remove('visible'); // Falls End-Display aus irgendeinem Grund sichtbar war
             }
         }
+
 
         async function playFixedRewardMelody(isRoundSuccessSound = false) {
             const ctx = await ensureAudioContext();
@@ -1230,21 +1458,21 @@
                 baseNoteDuration = 0.25; basePauseBetweenNotes = 0.08; gainValue = 0.25;
             }
             if (!melody || melody.length === 0) { return; }
-            let currentTime = ctx.currentTime + 0.05;
+            let currentTime = ctx.currentTime + 0.05; // Kleine Verzögerung für Audio-Start
             for (const frequency of melody) {
                 if (frequency === NOTE.PAUSE) { currentTime += baseNoteDuration + basePauseBetweenNotes; continue; }
                 const oscillator = ctx.createOscillator();
                 const gainNode = ctx.createGain();
                 oscillator.connect(gainNode); gainNode.connect(ctx.destination);
                 oscillator.frequency.setValueAtTime(frequency, currentTime);
-                oscillator.type = 'sine';
+                oscillator.type = 'sine'; // 'sine' ist oft angenehmer für Melodien
                 gainNode.gain.setValueAtTime(gainValue, currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.00001, currentTime + baseNoteDuration);
                 oscillator.start(currentTime); oscillator.stop(currentTime + baseNoteDuration);
                 currentTime += baseNoteDuration + basePauseBetweenNotes;
             }
             const melodyDurationMs = Math.max(0, (currentTime - (ctx.currentTime + 0.05))) * 1000;
-            if (melodyDurationMs > 0) { await sleep(melodyDurationMs + 50); }
+            if (melodyDurationMs > 0) { await sleep(melodyDurationMs + 50); } // Warte bis Melodie fertig + Puffer
         }
 
         function sleep(ms) {
