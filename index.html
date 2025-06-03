@@ -674,7 +674,7 @@
         let playerSequence = [];
         let currentRound = 0;
         let totalRounds = 0;
-        let correctRounds = 0;
+        let correctRounds = 0; // FIX: Tippfehler korrigiert
         let sequenceLength = 0;
         let wordSpacing = 0;
         let gameActive = false;
@@ -693,7 +693,9 @@
                 } catch (e) { console.warn("AudioContext konnte nicht initialisiert werden.", e); return null; }
             }
             if (audioContext.state === 'suspended') {
-                try { await audioContext.resume(); } catch (e) { console.warn("AudioContext resume fehlgeschlagen.", e); return null; }
+                try { await audioContext.resume(); console.log("AudioContext resumed."); } catch (e) { console.warn("AudioContext resume fehlgeschlagen.", e); return null; }
+            } else {
+                console.log("AudioContext state:", audioContext ? audioContext.state : 'not created');
             }
             return audioContext;
         }
@@ -710,21 +712,25 @@
 
 
         async function initializeGameSets() {
+            console.log("Initializing game sets...");
             try {
                 const response = await fetch('sets_manifest.json');
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 allAvailableSets = await response.json();
+                console.log("Sets manifest loaded:", allAvailableSets);
 
                 populateSetSelector();
                 if (allAvailableSets.length > 0) {
                     const savedSetId = localStorage.getItem('selectedGameSetId');
                     const setToLoad = allAvailableSets.find(s => s.id === savedSetId) || allAvailableSets[0];
                     gameSetSelect.value = setToLoad.id;
+                    console.log(`Attempting to load initial set: ${setToLoad.name} (${setToLoad.id})`);
                     await loadSet(setToLoad.id); // loadSet wird auch itemsWithValidEmojiCounts füllen
                 } else {
                     gameSetTitleElement.textContent = "Keine Spielsets gefunden.";
                     gameSetSelect.innerHTML = '<option value="">Keine Sets</option>';
                     gameSetSelect.disabled = true;
+                    console.warn("No game sets found in manifest.");
                 }
             } catch (error) {
                 console.error("Konnte Set-Manifest nicht laden:", error);
@@ -734,6 +740,7 @@
             } finally {
                  // applySettingsAndStartButton erst hier freigeben, wenn Sets geladen wurden
                  updateSettingsAccess(gameActive);
+                 console.log("Game set initialization finished.");
             }
         }
 
@@ -745,38 +752,40 @@
                 option.textContent = set.name;
                 gameSetSelect.appendChild(option);
             });
+            gameSetSelect.removeEventListener('change', handleSetSelectionChange); // Prevent multiple listeners
             gameSetSelect.addEventListener('change', handleSetSelectionChange);
+            console.log("Set selector populated.");
         }
 
         async function handleSetSelectionChange(event) {
             const selectedSetId = event.target.value;
+            console.log("Set selection changed to:", selectedSetId);
             localStorage.setItem('selectedGameSetId', selectedSetId);
 
             if (gameActive) {
+                console.log("Game is active, delaying set load until restart.");
                 const selectedSet = allAvailableSets.find(s => s.id === selectedSetId);
                  if (selectedSet) {
-                    // Nachricht, dass das neue Set beim nächsten Start verwendet wird
                     gameSetTitleElement.textContent = `${selectedSet.name} ausgewählt (Start drücken)`;
                 } else {
                     gameSetTitleElement.textContent = "Ausgewähltes Set nicht gefunden.";
                 }
-                // Das Spiel läuft weiter mit den alten Einstellungen und dem alten Set,
-                // bis der Benutzer 'Start' im Menü drückt.
-                updateSettingsAccess(true); // Einstellungen bleiben im Menü offen, aber gesperrt
+                updateSettingsAccess(true); // Settings stay accessible in menu but locked
             } else {
-                // Wenn kein Spiel aktiv ist, sofort das neue Set laden
+                console.log("Game is not active, loading new set immediately.");
                 await loadSet(selectedSetId);
-                updateSettingsAccess(false); // Einstellungen freigeben, wenn kein Spiel läuft
+                updateSettingsAccess(false); // Settings unlocked
             }
         }
 
         async function loadSet(setId) {
+            console.log("Loading set with ID:", setId);
             currentSetInfo = allAvailableSets.find(s => s.id === setId);
             EMOJIS_DATA = []; // Altdaten löschen
             itemsWithValidEmojiCounts = [];
 
             if (!currentSetInfo) {
-                console.error("Ausgewähltes Set nicht gefunden:", setId);
+                console.error("loadSet: Ausgewähltes Set nicht gefunden:", setId);
                 gameSetTitleElement.textContent = "Fehler: Set nicht gefunden.";
                 populateBoard(); // Leeres Board anzeigen
                 return false;
@@ -787,32 +796,45 @@
                 const response = await fetch(currentSetInfo.file);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status} für ${currentSetInfo.file}`);
                 const loadedData = await response.json();
+                console.log(`Set file "${currentSetInfo.file}" loaded.`);
 
                 if (!Array.isArray(loadedData) || loadedData.length === 0) {
                      throw new Error(`Set-Datei ${currentSetInfo.file} ist leer oder nicht korrekt formatiert.`);
                 }
 
                 EMOJIS_DATA = loadedData;
+                console.log("EMOJIS_DATA loaded:", EMOJIS_DATA.length, "items.");
 
                 // Validieren und nur Items mit 1, 2 oder 4 Emojis für die Sequenzgenerierung sammeln
                 itemsWithValidEmojiCounts = EMOJIS_DATA.filter(item => {
                      const count = getItemEmojiCount(item);
-                     // Prüfen auf notwendige Eigenschaften (id, word) ZUSÄTZLICH zur Emoji-Anzahl
-                     return typeof item.id !== 'undefined' && typeof item.word === 'string' && (count === 1 || count === 2 || count === 4);
+                     const isValidCount = (count === 1 || count === 2 || count === 4);
+                     const isValidItem = typeof item.id !== 'undefined' && typeof item.word === 'string' && item.word.trim() !== '';
+                     if (!isValidItem) {
+                         console.warn("loadSet: Skipping item with invalid format:", item);
+                     } else if (!isValidCount) {
+                          console.warn(`loadSet: Skipping item "${item.word}" (${item.id}) with invalid emoji count: ${count}. Requires 1, 2, or 4.`);
+                     }
+                     return isValidItem && isValidCount;
                 });
+
+                console.log("Items with valid emoji counts (1, 2, or 4):", itemsWithValidEmojiCounts.length);
 
 
                 if (EMOJIS_DATA.length === 0) {
                      gameSetTitleElement.textContent = `Set "${currentSetInfo.name}" ist leer.`;
                      populateBoard(); // Leeres Board
+                     console.warn("Set is empty.");
                      return false; // Set geladen, aber leer
                 } else if (itemsWithValidEmojiCounts.length === 0) {
                      gameSetTitleElement.textContent = `Set "${currentSetInfo.name}" geladen, aber keine Kacheln mit 1, 2 oder 4 Emojis gefunden.`;
                      populateBoard(); // Zeigt alle Kacheln, auch die ungültigen, aber Spiel kann nicht starten
+                     console.warn("Set loaded, but no playable tiles found.");
                      return false; // Set geladen, aber keine gültigen Spielkacheln
                 } else {
                     gameSetTitleElement.textContent = currentSetInfo.name;
                     populateBoard(); // Zeigt alle Kacheln aus EMOJIS_DATA
+                    console.log("Set loaded successfully and playable tiles found.");
                     return true; // Set geladen und spielbar
                 }
 
@@ -828,6 +850,7 @@
 
 
         document.addEventListener('DOMContentLoaded', async () => {
+            console.log("DOMContentLoaded.");
             await initializeGameSets();
             initializeVoiceSelection();
 
@@ -860,26 +883,30 @@
 
             // Beim ersten Laden das Menü öffnen, WENN Sets verfügbar sind
             if (firstLoad && allAvailableSets.length > 0) {
+                console.log("First load, opening menu.");
                 toggleMenu(true);
                  // Board blurren, nur wenn Menü beim Start offen ist
                  if (settingsMenu.classList.contains('active')) {
                      gameBoardElement.classList.add('initial-focus-menu');
                  }
             } else {
-                 // Ansonsten, wenn keine Sets da sind oder Menü nicht auto-öffnet, Board normal lassen
+                 console.log("First load skipped or no sets, not opening menu.");
                  gameBoardElement.classList.remove('initial-focus-menu');
                  firstLoad = false;
             }
              // Button-Zustände nach Initialisierung aktualisieren
              updateSettingsAccess(gameActive);
              updateButtonStates(gameActive);
+             console.log("DOMContentLoaded finished.");
         });
 
         function initializeVoiceSelection() {
+            console.log("Initializing voice selection...");
             const populateVoices = () => {
                 availableVoices = speechSynthesis.getVoices();
                  // If voices are not immediately available, wait a bit and try again
                 if (!availableVoices || availableVoices.length === 0) {
+                    console.log("Voices not immediately available, waiting...");
                     setTimeout(() => {
                         availableVoices = speechSynthesis.getVoices();
                         processVoices();
@@ -890,6 +917,7 @@
             };
 
             const processVoices = () => {
+                console.log("Processing available voices:", availableVoices.length);
                 let germanVoices = availableVoices.filter(voice => voice.lang.startsWith('de'));
                 voiceSelect.innerHTML = '';
                 const defaultOption = document.createElement('option');
@@ -911,10 +939,12 @@
                     if (savedVoiceURI && foundSavedVoice) {
                         voiceSelect.value = savedVoiceURI;
                         selectedVoice = foundSavedVoice;
+                         console.log("Saved voice loaded:", selectedVoice.name);
                     } else {
                         selectedVoice = null; // saved voice not found or none saved
                         localStorage.removeItem('selectedVoiceURI'); // clean up old entry if voice not found
                         voiceSelect.value = ""; // select default option
+                         console.log("No saved voice or saved voice not found, using default.");
                     }
                     voiceSelect.disabled = false;
                 } else {
@@ -922,44 +952,53 @@
                     voiceSelect.disabled = true;
                     selectedVoice = null; // ensure selectedVoice is null
                     localStorage.removeItem('selectedVoiceURI'); // clean up
+                    console.warn("No German voices available.");
                 }
                 // Update access after voices are processed
                 updateSettingsAccess(gameActive);
+                 console.log("Voice selection initialized.");
             };
 
             if ('speechSynthesis' in window) {
                 speechSynthesis.onvoiceschanged = () => {
+                     console.log("speechSynthesis voiceschanged event fired.");
                      // Only populate if voices weren't already loaded
                      if (!availableVoices || availableVoices.length === 0) {
                          populateVoices();
                      } else {
                          // If voices change *after* initial load, re-process just in case (less common)
+                         console.log("Voices already loaded, reprocessing voice list.");
                          processVoices();
                      }
                 };
                  // Initial call to populate voices
                 populateVoices();
             } else {
+                console.warn("Speech Synthesis not supported in this browser.");
                 voiceSelect.innerHTML = '<option value="">TTS nicht unterstützt</option>';
                 voiceSelect.disabled = true;
                 updateSettingsAccess(gameActive); // Update access even if TTS is off
+                 console.log("Voice selection initialized (TTS not supported).");
             }
         }
 
 
         function handleVoiceChange() {
             const selectedURI = voiceSelect.value;
+            console.log("Voice selection changed to URI:", selectedURI);
             if (selectedURI === "") {
                 selectedVoice = null;
                 localStorage.removeItem('selectedVoiceURI');
                 speak("Standardstimme ausgewählt.");
+                console.log("Selected standard voice.");
             } else {
                 selectedVoice = availableVoices.find(voice => voice.voiceURI === selectedURI);
                 if (selectedVoice) {
                     localStorage.setItem('selectedVoiceURI', selectedVoice.voiceURI);
                     speak(`Stimme ${selectedVoice.name || 'Standard'} ausgewählt.`, { voice: selectedVoice }); // Use the selected voice for the preview
+                    console.log("Selected voice:", selectedVoice.name);
                 } else {
-                    console.warn("Ausgewählte Stimme nicht in verfügbarer Liste gefunden.");
+                    console.warn("Ausgewählte Stimme nicht in verfügbarer Liste gefunden. URI:", selectedURI);
                     selectedVoice = null; localStorage.removeItem('selectedVoiceURI'); voiceSelect.value = "";
                     speak("Ausgewählte Stimme nicht gefunden, Standard wird verwendet.");
                 }
@@ -968,15 +1007,20 @@
 
 
         function populateBoard() {
+            console.log("Populating board. EMOJIS_DATA length:", EMOJIS_DATA.length);
             gameBoardElement.querySelectorAll('.tile').forEach(tile => tile.remove());
             // Check if boardOverlay or endGameDisplay exist before attempting to insert tiles before them
             const referenceNode = boardOverlay && boardOverlay.parentNode === gameBoardElement ? boardOverlay :
                                 endGameDisplay && endGameDisplay.parentNode === gameBoardElement ? endGameDisplay : null;
 
             if (!EMOJIS_DATA || EMOJIS_DATA.length === 0) {
-                 if (referenceNode) { // Ensure reference nodes are still there if board is cleared
-                     gameBoardElement.appendChild(referenceNode);
+                 if (referenceNode) {
+                     // Ensure reference nodes are still there if board is cleared
+                      // Check if they are still children before appending
+                     if (!Array.from(gameBoardElement.children).includes(boardOverlay)) gameBoardElement.appendChild(boardOverlay);
+                     if (!Array.from(gameBoardElement.children).includes(endGameDisplay)) gameBoardElement.appendChild(endGameDisplay);
                  }
+                 console.log("Board cleared, no data to render.");
                  return; // Nichts zu rendern
             }
 
@@ -999,13 +1043,6 @@
                 const emojiCount = emojisToDisplay.length;
 
                 if (emojiCount > 0) {
-                    // Obwohl das Spiel nur 1, 2, 4 nutzt, rendern wir hier trotzdem alle Emojis, die im Set sind
-                    // Mit einer Warnung für nicht unterstützte Anzahlen
-                    if (emojiCount !== 1 && emojiCount !== 2 && emojiCount !== 4) {
-                         console.warn(`Set-Item "${item.word}" (${item.id}) hat ${emojiCount} Emojis. Nur 1, 2 oder 4 werden im Spiel verwendet.`);
-                         // Optional: spezielle Klasse für Styling nicht-spielbarer Kacheln
-                         // tile.classList.add('unplayable-count');
-                    }
                     emojiContainer.classList.add(`emoji-count-${emojiCount}`);
 
                     emojisToDisplay.forEach(emojiChar => {
@@ -1015,8 +1052,8 @@
                         emojiContainer.appendChild(emojiSpan);
                     });
                 } else {
-                    console.warn("Keine oder ungültige Emojis für Item gefunden oder Item-Format ungültig:", item.id, item);
-                     emojiContainer.classList.add('emoji-count-0');
+                    console.warn("PopulateBoard: No or invalid emojis found for item:", item.id, item);
+                     emojiContainer.classList.add('emoji-count-0'); // Add class even if 0
                 }
 
                 tile.appendChild(emojiContainer);
@@ -1032,32 +1069,39 @@
              // Sicherstellen, dass boardOverlay und endGameDisplay immer am Ende sind, falls sie existieren
             if (boardOverlay && boardOverlay.parentNode !== gameBoardElement) gameBoardElement.appendChild(boardOverlay);
             if (endGameDisplay && endGameDisplay.parentNode !== gameBoardElement) gameBoardElement.appendChild(endGameDisplay);
-
+            console.log("Board populated with", EMOJIS_DATA.length, "tiles.");
         }
 
 
         function toggleMenu(forceOpen = null) {
             const isOpen = settingsMenu.classList.contains('active');
             const show = forceOpen !== null ? forceOpen : !isOpen;
+            console.log("Toggling menu. Current state:", isOpen, "Target state:", show, "Force:", forceOpen);
 
             if (infoModal.classList.contains('visible')) {
+                console.log("Closing info modal before toggling settings menu.");
                 infoModal.classList.remove('visible');
                 infoModal.setAttribute('aria-hidden', 'true');
             }
 
             if (show) {
+                console.log("Opening menu.");
                 settingsMenu.classList.add('active');
                 menuOverlay.classList.add('active');
                 menuToggleButton.setAttribute('aria-expanded', 'true');
                 settingsMenu.setAttribute('aria-hidden', 'false');
                 // Ensure board overlay is present if menu is opening over active game
                  if (gameActive) {
+                     console.log("Menu opening over active game, disabling board interaction.");
                      disableBoardInteraction(true); // Blockiert das Board darunter
                  } else {
                      // Wenn kein Spiel läuft, aber das Menü öffnet (z.B. beim ersten Laden)
-                     // Board wird nicht blockiert, aber vielleicht visuell verändert (initial-focus-menu)
+                     console.log("Menu opening, game not active.");
+                     // Board wird nicht blockiert durch disableBoardInteraction(true),
+                     // aber initial-focus-menu könnte Overlay aktivieren (siehe CSS)
                  }
                 if (endGameDisplay.classList.contains('visible')) {
+                    console.log("End game display was visible, hiding it.");
                     endGameDisplay.classList.remove('visible');
                 }
 
@@ -1065,32 +1109,38 @@
                     updateSettingsAccess(false); // Einstellungen im geöffneten Menü sperren
                     gameWasPausedByMenu = true; // Spiel als durch Menü pausiert markieren
                     if ('speechSynthesis' in window && speechSynthesis.speaking) {
+                         console.log("Speech synthesis speaking, cancelling.");
                          speechSynthesis.cancel(); // Laufende Sprachausgabe abbrechen
                     }
                 } else {
                      updateSettingsAccess(false); // Einstellungen im geöffneten Menü freigeben, wenn kein Spiel läuft
                 }
             } else { // Menü schließen
+                console.log("Closing menu.");
                 settingsMenu.classList.remove('active');
                 menuOverlay.classList.remove('active');
                 menuToggleButton.setAttribute('aria-expanded', 'false');
                 settingsMenu.setAttribute('aria-hidden', 'true');
 
                 if (gameActive && gameWasPausedByMenu) {
-                    // Wenn Spiel durch Menü pausiert war, Board wieder freigeben
-                    disableBoardInteraction(false);
-                    updateSettingsAccess(true); // Einstellungen wieder sperren, wenn Spiel läuft
+                    console.log("Menu closed, game was paused by menu, re-enabling board.");
+                    disableBoardInteraction(false); // Board wieder freigeben
+                    updateSettingsAccess(true); // Einstellungen wieder sperren
                     gameWasPausedByMenu = false; // Zustand zurücksetzen
                 } else if (!gameActive && firstLoad) {
-                    // Beim ersten Laden, wenn Menü schließt
+                    console.log("Menu closed, game not active, first load. Removing initial blur/overlay.");
                      gameBoardElement.classList.remove('initial-focus-menu');
                      disableBoardInteraction(false); // Overlay entfernen, falls initial da war
                      firstLoad = false;
                      updateSettingsAccess(false); // Einstellungen freigeben
                 } else if (!gameActive) {
-                    // Wenn kein Spiel läuft und Menü schließt (nicht erster Load)
+                    console.log("Menu closed, game not active (not first load). Ensuring board is enabled.");
                      disableBoardInteraction(false); // Overlay entfernen, falls da war
                      updateSettingsAccess(false); // Einstellungen freigeben
+                } else {
+                    console.log("Menu closed, game active, but not paused by menu? (Shouldn't happen)");
+                    disableBoardInteraction(false); // Safety net
+                    updateSettingsAccess(true); // Ensure settings locked if game is active
                 }
                  updateButtonStates(gameActive); // Button-Zustände nach Schließen des Menüs aktualisieren
             }
@@ -1098,26 +1148,30 @@
 
 
         async function handleApplySettingsAndStart() {
+            console.log("Apply Settings and Start button clicked.");
             if (endGameDisplay.classList.contains('visible')) {
+                 console.log("Hiding end game display.");
                  endGameDisplay.classList.remove('visible');
             }
             if (gameBoardElement.classList.contains('initial-focus-menu')) {
+                 console.log("Removing initial focus menu blur.");
                  gameBoardElement.classList.remove('initial-focus-menu');
             }
             firstLoad = false; // Spiel wurde gestartet
 
             const selectedSetId = gameSetSelect.value;
+            console.log("Loading set:", selectedSetId, "for game start.");
             const loadSuccess = await loadSet(selectedSetId); // Lädt EMOJIS_DATA und itemsWithValidEmojiCounts
 
             if (!loadSuccess) {
-                 // Fehlermeldung wurde bereits in loadSet gesetzt
+                 console.error("Set load failed. Cannot start game.");
                  toggleMenu(false); // Menü schließen, um Fehlermeldung zu zeigen
                  updateSettingsAccess(false); // Einstellungen freigeben, falls Set nicht geladen werden konnte
                  return;
             }
 
             if (itemsWithValidEmojiCounts.length === 0) {
-                // Set geladen, aber enthält keine spielbaren Kacheln (1, 2 oder 4 Emojis)
+                console.error("Set loaded, but no playable tiles found. Cannot start game.");
                 gameSetTitleElement.textContent += " - Keine spielbaren Kacheln gefunden.";
                  toggleMenu(false); // Menü schließen
                  updateSettingsAccess(false); // Einstellungen freigeben
@@ -1126,38 +1180,45 @@
             }
 
             // Wenn alles in Ordnung ist, Spiel starten
+            console.log("Set loaded successfully with playable tiles. Starting game.");
             toggleMenu(false); // Menü schließen
             if (gameActive) {
+                console.log("Game was active, aborting before starting new one.");
                 await abortGame(false); // Aktuelles Spiel abbrechen, ohne Abort-Nachricht
             }
             await startGame();
         }
 
         async function handlePlayAgain() {
+            console.log("Play Again button clicked.");
             if (endGameDisplay.classList.contains('visible')) {
+                 console.log("Hiding end game display.");
                  endGameDisplay.classList.remove('visible');
             }
             endGameMessageElement.textContent = '';
 
             // Überprüfen, ob das aktuell geladene Set spielbare Kacheln enthält
             if (!EMOJIS_DATA || itemsWithValidEmojiCounts.length === 0) {
-                console.error("Keine oder keine spielbaren Set-Daten für 'Nochmal spielen' vorhanden.");
+                console.error("handlePlayAgain: No playable set data available.");
                 gameSetTitleElement.textContent = "Fehler: Bitte Set auswählen und starten.";
                 // Menü öffnen, damit Benutzer neues Set wählen kann
                 toggleMenu(true);
                 return;
             }
 
+            console.log("Aborting current game state before playing again.");
             await abortGame(false); // Spiel sauber beenden, bevor es neu gestartet wird
+            console.log("Starting new game after Play Again.");
             await startGame();
         }
 
         async function startGame() {
-            if (gameActive) return; // Verhindere doppelten Start
+            console.log("startGame called. Current gameActive:", gameActive);
+            if (gameActive) { console.log("Game already active, returning."); return; } // Verhindere doppelten Start
 
             // Zusätzlicher Check, obwohl loadSet/handleApplySettingsAndStart das schon prüfen sollten
             if (!EMOJIS_DATA || itemsWithValidEmojiCounts.length === 0) {
-                console.error("Versuch, Spiel ohne spielbare EMOJI_DATA zu starten.");
+                console.error("startGame: Attempt to start game without playable EMOJI_DATA.");
                 gameSetTitleElement.textContent = "Fehler: Bitte valides Set auswählen.";
                 updateSettingsAccess(false); // Einstellungen freigeben, um Korrektur zu ermöglichen
                 applySettingsAndStartButton.disabled = true; // Start button deaktivieren
@@ -1168,11 +1229,13 @@
             endGameMessageElement.textContent = ''; // Alte Endspielnachrichten löschen
             endGameDisplay.classList.remove('visible'); // End-Display ausblenden
 
+            console.log("Ensuring audio context.");
             await ensureAudioContext(); // Sicherstellen, dass der AudioContext bereit ist
 
             sequenceLength = parseInt(sequenceLengthSelect.value);
             totalRounds = parseInt(numRoundsSelect.value);
             wordSpacing = parseInt(wordSpacingSelect.value);
+            console.log(`Game settings: Length=${sequenceLength}, Rounds=${totalRounds}, Spacing=${wordSpacing}`);
 
             currentRound = 0; correctRounds = 0; playerSequence = []; roundAttempts = 0;
             gameWasPausedByMenu = false; // Zurücksetzen für den neuen Spielstart
@@ -1180,62 +1243,80 @@
             updateButtonStates(true);
             updateSettingsAccess(true); // Einstellungen sperren während des Spiels
             initializeProgressCircles(totalRounds);
+            console.log("Starting first round...");
             await nextRound();
+            console.log("startGame finished.");
         }
 
         async function abortGame(showMessage = true) {
+            console.log("abortGame called. Current gameActive:", gameActive, "showMessage:", showMessage);
             const wasActuallyActive = gameActive; // Merken, ob das Spiel wirklich aktiv war
             gameActive = false; // Spiel als inaktiv markieren
             gameWasPausedByMenu = false; // Zurücksetzen
             currentSequence = []; playerSequence = []; // Sequenzen leeren
+            console.log("Game state reset.");
 
             // Laufende Sprachausgabe stoppen
             if ('speechSynthesis' in window && speechSynthesis.speaking) {
+                 console.log("Cancelling speech synthesis.");
                  speechSynthesis.cancel();
                  // await sleep(50); // Kurze Pause, damit cancel() wirken kann - nicht nötig bei sofortigem UI-Update
             }
 
              // Aktive Hervorhebungen von Kacheln entfernen
-             document.querySelectorAll('.tile.active, .tile.error-input').forEach(t => {
+             gameBoardElement.querySelectorAll('.tile.active, .tile.error-input').forEach(t => {
                 t.classList.remove('active', 'error-input');
             });
+            console.log("Tile highlights removed.");
+
 
             // Board-Interaktion nur freigeben, wenn Menü nicht offen ist
             if (!settingsMenu.classList.contains('active')) {
+                console.log("Menu is not active, re-enabling board interaction.");
                 disableBoardInteraction(false);
+            } else {
+                 console.log("Menu is active, board interaction remains disabled (handled by menu toggle).");
             }
 
             updateButtonStates(false); // Buttons aktualisieren
             updateSettingsAccess(false); // Einstellungen freigeben
             clearProgressCircles(); // Fortschrittskreise leeren
+            console.log("UI updated for abort state.");
 
 
             if (showMessage && wasActuallyActive) { // Nur Nachricht zeigen, wenn Spiel lief und showMessage true ist
+                console.log("Showing abort message.");
                 endGameMessageElement.textContent = 'Spiel abgebrochen.';
-                 if (endGameDisplay.querySelector('.emoji-icon')) {
-                    endGameDisplay.querySelector('.emoji-icon').style.display = 'none'; // Emoji ausblenden
-                }
+                 const emojiIconElement = endGameDisplay.querySelector('.emoji-icon');
+                 if (emojiIconElement) {
+                    emojiIconElement.style.display = 'none'; // Emoji ausblenden
+                 }
                 if (playAgainButtonElement) {
                      playAgainButtonElement.style.display = 'none'; // Button ausblenden
                 }
                 endGameDisplay.classList.add('visible'); // End-Display einblenden
             } else { // Keine Nachricht oder Spiel war nicht aktiv/showMessage ist false
+                 console.log("Not showing abort message.");
                  endGameMessageElement.textContent = '';
                  endGameDisplay.classList.remove('visible');
-                 if (endGameDisplay.querySelector('.emoji-icon')) {
-                    endGameDisplay.querySelector('.emoji-icon').style.display = ''; // Emoji Icon wieder normal
+                 const emojiIconElement = endGameDisplay.querySelector('.emoji-icon');
+                 if (emojiIconElement) {
+                    emojiIconElement.style.display = ''; // Emoji Icon wieder normal
                  }
                  if (playAgainButtonElement) {
                     playAgainButtonElement.style.display = ''; // Button wieder normal
                  }
             }
+            console.log("abortGame finished.");
         }
 
 
         function updateButtonStates(isPlaying) {
+             console.log("updateButtonStates called. isPlaying:", isPlaying);
             // Repeat-Button nur aktivieren, wenn Spiel aktiv, Board NICHT durch Spiel blockiert UND Sequenz vorhanden
-            const isBoardBlockedByGame = boardOverlay.style.display === 'block' && !gameWasPausedByMenu;
+            const isBoardBlockedByGame = boardOverlay && boardOverlay.style.display === 'block' && !gameWasPausedByMenu;
             repeatButton.disabled = !isPlaying || currentSequence.length === 0 || isBoardBlockedByGame;
+            console.log("Repeat button disabled:", repeatButton.disabled);
 
             // Start-Button (applySettingsAndStartButton) wird separat in updateSettingsAccess behandelt,
             // abhängig von der Verfügbarkeit spielbarer Sets.
@@ -1243,58 +1324,73 @@
 
         function updateSettingsAccess(gameIsRunning) {
             const menuIsOpen = settingsMenu.classList.contains('active');
+            console.log("updateSettingsAccess called. gameIsRunning:", gameIsRunning, "menuIsOpen:", menuIsOpen);
 
             // Set-Auswahl ist gesperrt, wenn ein Spiel läuft UND das Menü geschlossen ist
             gameSetSelect.disabled = (gameIsRunning && !menuIsOpen) || allAvailableSets.length === 0;
+            console.log("gameSetSelect disabled:", gameSetSelect.disabled);
 
             // Länge, Runden, Abstand sind gesperrt, wenn ein Spiel läuft UND das Menü geschlossen ist
             sequenceLengthSelect.disabled = gameIsRunning && !menuIsOpen;
             numRoundsSelect.disabled = gameIsRunning && !menuIsOpen;
             wordSpacingSelect.disabled = gameIsRunning && !menuIsOpen;
+            console.log("Game settings selects disabled:", sequenceLengthSelect.disabled);
+
 
             // Stimmauswahl Logik
             const ttsGenerallyAvailable = 'speechSynthesis' in window;
             const voicesLoaded = availableVoices && availableVoices.length > 0;
             const germanVoicesAvailable = voicesLoaded && availableVoices.some(v => v.lang.startsWith('de'));
+            const voiceOptionDefault = voiceSelect.querySelector('option[value=""]');
+
 
             if (!ttsGenerallyAvailable) {
                 voiceSelect.disabled = true;
-                const defaultOption = voiceSelect.querySelector('option[value=""]');
-                if (defaultOption) defaultOption.textContent = "TTS nicht unterstützt";
+                if (voiceOptionDefault) voiceOptionDefault.textContent = "TTS nicht unterstützt";
+                 console.log("voiceSelect disabled: TTS not supported.");
             } else if (gameIsRunning && !menuIsOpen) {
                 voiceSelect.disabled = true;
+                 console.log("voiceSelect disabled: Game running and menu closed.");
             } else { // Spiel läuft nicht oder Menü ist offen
                  voiceSelect.disabled = !voicesLoaded || !germanVoicesAvailable;
-                 const defaultOption = voiceSelect.querySelector('option[value=""]');
-                 if (defaultOption) {
-                     if (!voicesLoaded && !defaultOption.textContent.includes("geladen") && !defaultOption.textContent.includes("verfügbar")) {
-                         defaultOption.textContent = "Stimmen werden geladen...";
+                 if (voiceOptionDefault) {
+                     if (!voicesLoaded && !voiceOptionDefault.textContent.includes("geladen") && !voiceOptionDefault.textContent.includes("verfügbar")) {
+                         voiceOptionDefault.textContent = "Stimmen werden geladen...";
                      } else if (voicesLoaded && !germanVoicesAvailable) {
-                         defaultOption.textContent = "Keine dt. Stimme verfügbar";
-                     } else if (voicesLoaded && germanVoicesAvailable && !defaultOption.textContent.includes("Standard (Browser)")) {
-                         defaultOption.textContent = "Standard (Browser)";
+                         voiceOptionDefault.textContent = "Keine dt. Stimme verfügbar";
+                     } else if (voicesLoaded && germanVoicesAvailable && !voiceOptionDefault.textContent.includes("Standard (Browser)")) {
+                         voiceOptionDefault.textContent = "Standard (Browser)";
                      }
                  }
+                 console.log("voiceSelect disabled:", voiceSelect.disabled, "(Voices loaded:", voicesLoaded, "German voices:", germanVoicesAvailable, ")");
             }
 
             // Start-Button ist deaktiviert, wenn keine Sets da sind ODER das geladene Set keine spielbaren Kacheln hat
-             applySettingsAndStartButton.disabled = (allAvailableSets.length === 0) || (EMOJIS_DATA.length > 0 && itemsWithValidEmojiCounts.length === 0 && !gameIsRunning); // Deaktiviere, wenn Set geladen, aber ungültig und Spiel nicht läuft
+             const cannotStartDueToSet = (allAvailableSets.length === 0) || (EMOJIS_DATA.length > 0 && itemsWithValidEmojiCounts.length === 0 && !gameIsRunning);
+             applySettingsAndStartButton.disabled = cannotStartDueToSet;
+             console.log("applySettingsAndStartButton disabled:", applySettingsAndStartButton.disabled, "(Cannot start due to set:", cannotStartDueToSet, ")");
+
 
              // Wenn ein Spiel läuft und das Menü offen ist, ist der Startbutton immer noch aktiv,
              // aber das Drücken darauf bricht das alte Spiel ab und startet ein neues.
+             // Dieser Fall hat Priorität, wenn das Set eigentlich spielbar ist.
              if (gameIsRunning && menuIsOpen && itemsWithValidEmojiCounts.length > 0) {
                  applySettingsAndStartButton.disabled = false;
+                 console.log("applySettingsAndStartButton re-enabled because game is running, menu is open, and set is playable.");
              } else if (gameIsRunning && menuIsOpen && itemsWithValidEmojiCounts.length === 0) {
                  // Sonderfall: Spiel läuft, Menü offen, aber das GELADENE Set hat keine validen Kacheln
                  // Der Startbutton sollte hier deaktiviert sein, da ein Start mit diesem Set fehlschlägt
                   applySettingsAndStartButton.disabled = true;
+                  console.log("applySettingsAndStartButton disabled because game is running, menu is open, but loaded set is NOT playable.");
              }
 
+             console.log("updateSettingsAccess finished.");
 
         }
 
 
         function initializeProgressCircles(num) {
+            console.log("Initializing progress circles:", num);
             progressCirclesContainer.innerHTML = '';
             for (let i = 0; i < num; i++) {
                 const circle = document.createElement('div');
@@ -1302,96 +1398,144 @@
                 progressCirclesContainer.appendChild(circle);
             }
         }
-        function clearProgressCircles() { progressCirclesContainer.innerHTML = ''; }
+        function clearProgressCircles() {
+             console.log("Clearing progress circles.");
+             progressCirclesContainer.innerHTML = '';
+        }
         function updateProgressCircle(roundIndex, isCorrect) {
+            console.log(`Updating progress circle for round ${roundIndex}: ${isCorrect ? 'Correct' : 'Incorrect'}`);
             const circles = progressCirclesContainer.children;
             if (circles[roundIndex]) {
                 circles[roundIndex].classList.remove('correct', 'incorrect'); // Alte Klassen entfernen
                 circles[roundIndex].classList.add(isCorrect ? 'correct' : 'incorrect');
+            } else {
+                 console.warn(`updateProgressCircle: Circle element for round ${roundIndex} not found.`);
             }
         }
         function disableBoardInteraction(disable) {
+             console.log("disableBoardInteraction called with:", disable);
              if (boardOverlay) { // Sicherstellen, dass das Overlay-Element existiert
                  boardOverlay.style.display = disable ? 'block' : 'none';
+                 console.log("Board overlay display set to:", boardOverlay.style.display);
+             } else {
+                 console.warn("boardOverlay element not found!");
              }
         }
 
         async function nextRound() {
-            if (!gameActive) return; // Spiel nicht aktiv, nichts tun
+            console.log('nextRound started. Current round:', currentRound, 'Total rounds:', totalRounds, 'GameActive:', gameActive);
+            if (!gameActive) { console.log('nextRound returning: Game not active.'); return; }
+
             if (currentRound >= totalRounds) {
-                await endGame(); return; // Alle Runden gespielt
+                console.log('nextRound: Reached total rounds, ending game.');
+                await endGame();
+                console.log('nextRound returning: End game called.');
+                return;
             }
 
-            // Sicherstellen, dass noch spielbare Kacheln vorhanden sind, falls sequenceLength größer als itemsWithValidEmojiCounts.length
             if (itemsWithValidEmojiCounts.length === 0) {
-                 console.error("Keine spielbaren Kacheln für nächste Runde verfügbar.");
+                 console.error("nextRound: No playable tiles available.");
                  gameSetTitleElement.textContent = "Fehler: Keine spielbaren Kacheln im Set.";
-                 await abortGame(true); // Spiel mit Fehlermeldung abbrechen
+                 await abortGame(true);
+                 console.log('nextRound returning: Aborting game due to no playable tiles.');
                  return;
             }
 
+            playerSequence = [];
+            roundAttempts = 0;
+            console.log('nextRound: Reset player sequence and attempts.');
 
-            playerSequence = []; roundAttempts = 0; // Spielersequenz und Versuche zurücksetzen
-            disableBoardInteraction(true); // Board blockieren für Sequenzwiedergabe
-            repeatButton.disabled = true; // Wiederholbutton deaktivieren
+            disableBoardInteraction(true); // Ensure board is disabled before generating/playing
+            repeatButton.disabled = true; // Ensure repeat button is disabled
 
             currentSequence = generateRandomSequence(sequenceLength);
+            console.log('nextRound: Generated sequence:', currentSequence);
 
-            // Prüfen, ob eine Sequenz generiert werden konnte
             if (currentSequence.length === 0) {
-                 console.error("Konnte keine Sequenz generieren. Möglicherweise zu wenig spielbare Kacheln?");
+                 console.error("nextRound: Could not generate sequence. Not enough valid items or sequence length too large?");
                  gameSetTitleElement.textContent = "Fehler: Kann Sequenz nicht erstellen.";
-                 await abortGame(true); // Spiel abbrechen
+                 await abortGame(true);
+                 console.log('nextRound returning: Aborting game due to empty sequence.');
                  return;
             }
 
-            await sleep(500); // Kurze Pause vor Sequenzstart
-            await playSequence(currentSequence);
+            await sleep(500); // Pause before sequence start
 
-            // Board nur freigeben, wenn Spiel noch aktiv und Menü nicht dazwischenkam
-            if (gameActive && !gameWasPausedByMenu) {
-                disableBoardInteraction(false);
+            console.log('nextRound: About to play sequence.');
+            await playSequence(currentSequence, false); // Initial play is not a repeat
+            console.log('nextRound: playSequence finished.');
+
+            // Board should have been re-enabled by playSequence IF gameActive and not paused by menu
+            // Let's add a safety log/check here
+            console.log('nextRound: Checking board interaction state after playSequence.');
+            if (boardOverlay && boardOverlay.style.display === 'block' && !gameWasPausedByMenu) {
+                console.warn('nextRound: Board overlay still active after playSequence finished unexpectedly!');
+                 // We don't auto-fix here; the log helps diagnose the issue.
             }
-            updateButtonStates(gameActive); // Button-Status aktualisieren
+             // Redundant call to disableBoardInteraction(false) removed here as it's handled in playSequence and toggleMenu
+
+            updateButtonStates(gameActive); // Update buttons again just in case
+            console.log('nextRound finished.');
         }
 
         // generateRandomSequence verwendet nun itemsWithValidEmojiCounts
         function generateRandomSequence(length) {
+            console.log("generateRandomSequence called with length:", length);
             const sequence = [];
             const availableItems = [...itemsWithValidEmojiCounts]; // Kopie der gültigen Items
             const maxLength = availableItems.length;
             const actualLength = Math.min(length, maxLength); // Nicht mehr Items ziehen als verfügbar sind
 
+            console.log("generateRandomSequence: Available items:", maxLength, "Actual sequence length:", actualLength);
+
             if (actualLength === 0) {
-                 console.warn("Nicht genügend Items mit 1, 2 oder 4 Emojis für die Sequenzlänge verfügbar.");
+                 console.warn("generateRandomSequence: Not enough items with 1, 2 or 4 emojis for sequence length.");
                  return []; // Leere Sequenz, Spiel kann nicht starten
             }
-
 
             for (let i = 0; i < actualLength; i++) {
                 const randomIndex = Math.floor(Math.random() * availableItems.length);
                 sequence.push(availableItems[randomIndex].id); // Nur die ID speichern
                 availableItems.splice(randomIndex, 1); // Gezogenes Item entfernen für Einzigartigkeit in Sequenz
             }
+             console.log("generateRandomSequence: Generated sequence:", sequence);
             return sequence;
         }
 
         async function playSequence(sequence, isRepeat = false) {
-            // Spielen, wenn Spiel aktiv (oder es eine Wiederholung ist), Sequenz existiert und Menü nicht offen ist
-            if ((!gameActive && !isRepeat) || !sequence || sequence.length === 0 || (gameActive && gameWasPausedByMenu)) return;
+            console.log('playSequence started. Sequence length:', sequence.length, 'IsRepeat:', isRepeat, 'GameActive:', gameActive, 'MenuPaused:', gameWasPausedByMenu);
+            // Check initial state before proceeding
+            if ((!gameActive && !isRepeat) || !sequence || sequence.length === 0 || (gameActive && gameWasPausedByMenu)) {
+                 console.log('playSequence returning early due to game state or empty sequence.');
+                 // Ensure board is re-enabled if this is a repeat and the game wasn't fully aborted
+                  if (isRepeat && gameActive && !gameWasPausedByMenu) {
+                      console.log('playSequence (early return): Re-enabling board for repeat attempt.');
+                      disableBoardInteraction(false);
+                  } else if (!gameActive && !settingsMenu.classList.contains('active')) {
+                       // If game aborted, ensure board is enabled unless menu is covering
+                       console.log('playSequence (early return): Game not active, ensuring board is enabled unless menu is open.');
+                        disableBoardInteraction(false);
+                  }
+
+                 updateButtonStates(gameActive); // Update button state
+                 return;
+            }
 
             disableBoardInteraction(true); // Board blockieren
             repeatButton.disabled = true; // Wiederholbutton deaktivieren
+             console.log('playSequence: Board interaction disabled, repeat button disabled.');
 
-            // Alte Hervorhebungen entfernen
+
             gameBoardElement.querySelectorAll('.tile.active, .tile.error-input').forEach(t => {
-                t.classList.remove('active', 'error-input');
-            });
+               t.classList.remove('active', 'error-input');
+           });
+            console.log('playSequence: Removed old tile highlights.');
+
 
             for (const itemId of sequence) {
                 // Prüfen, ob Spiel noch aktiv und Menü nicht aufgegangen ist VOR jedem Schritt
-                if (!gameActive && !isRepeat) break;
-                if (gameActive && gameWasPausedByMenu) break; // Bei Menü-Öffnung während Sequenz abbrechen
+                if (!gameActive && !isRepeat) { console.log('playSequence breaking loop: game not active and not repeat.'); break; }
+                if (gameActive && gameWasPausedByMenu) { console.log('playSequence breaking loop: game active but menu paused.'); break; }
 
 
                 const itemData = EMOJIS_DATA.find(d => d.id === itemId);
@@ -1399,47 +1543,68 @@
 
                 if (itemData && tileElement) {
                     tileElement.classList.add('active');
+                    console.log(`playSequence: Speaking word: "${itemData.word}" for item ${itemId}`);
                     await speak(itemData.word); // Wort vorlesen
                     await sleep(100); // Kurze Pause, damit die Hervorhebung sichtbar ist
                     tileElement.classList.remove('active');
                 } else {
-                    console.warn(`Item mit ID ${itemId} oder zugehörige Kachel nicht gefunden.`);
+                    console.warn(`playSequence: Item with ID ${itemId} or associated tile element not found in EMOJIS_DATA. Skipping.`);
                 }
 
                 // Pause zwischen Wörtern, aber nur wenn Spiel noch läuft etc.
                 if ((gameActive || isRepeat) && !gameWasPausedByMenu) {
+                     // console.log(`Pausing ${wordSpacing}ms`); // Optional: log pauses
                      await sleep(wordSpacing);
                 } else {
-                    // Wenn Spiel nicht mehr aktiv oder Menü aufgegangen, Schleife beenden
-                    break;
+                    console.log('playSequence breaking loop after sleep check: game state changed during pause.');
+                    break; // Wenn Spiel nicht mehr aktiv oder Menü aufgegangen, Schleife beenden
                 }
-            }
+            } // Loop ends
 
-            // Board nur freigeben, wenn Spiel noch aktiv und Menü NICHT dazwischenkam (oder es ein Repeat war)
-            if ((gameActive && !gameWasPausedByMenu) || isRepeat) {
+            console.log('playSequence loop finished.');
+
+            // Re-enable board interaction UNLESS game ended or menu is open
+            const shouldReEnable = (gameActive && !gameWasPausedByMenu) || isRepeat; // Keep original condition for now
+             if (shouldReEnable) {
+                 console.log('playSequence: Re-enabling board interaction. gameActive:', gameActive, 'gameWasPausedByMenu:', gameWasPausedByMenu, 'isRepeat:', isRepeat);
                  disableBoardInteraction(false);
-            }
+                 console.log('playSequence: Board interaction re-enabled.');
+             } else {
+                  console.log('playSequence: Board interaction NOT re-enabled. gameActive:', gameActive, 'gameWasPausedByMenu:', gameWasPausedByMenu, 'isRepeat:', isRepeat);
+             }
             updateButtonStates(gameActive); // Button-Status aktualisieren
+            console.log('playSequence finished.');
         }
 
         async function repeatCurrentSequence() {
+            console.log('repeatCurrentSequence called. GameActive:', gameActive, 'Seq Length:', currentSequence.length, 'BoardOverlay:', boardOverlay.style.display, 'MenuPaused:', gameWasPausedByMenu);
             // Klick ignorieren, wenn Spiel nicht aktiv, Board blockiert (außer durch Pause-Menü), etc.
-            const isBoardBlockedByGame = boardOverlay.style.display === 'block' && !gameWasPausedByMenu;
-            if (!gameActive || currentSequence.length === 0 || isBoardBlockedByGame) return;
+            const isBoardBlockedByGame = boardOverlay && boardOverlay.style.display === 'block' && !gameWasPausedByMenu;
+            if (!gameActive || currentSequence.length === 0 || isBoardBlockedByGame) {
+                 console.log('repeatCurrentSequence ignored due to game state.');
+                 return;
+            }
 
+            console.log("Repeating current sequence.");
             playerSequence = []; // Spielersequenz zurücksetzen für neuen Versuch
             await playSequence(currentSequence, true); // true für isRepeat
         }
 
         function speak(text, options = {}) {
             return new Promise(async (resolve) => {
-                if (!('speechSynthesis' in window) || !text) { resolve(); return; }
+                console.log(`speak called with text: "${text}"`);
+                if (!('speechSynthesis' in window) || !text) {
+                    console.warn("SpeechSynthesis not supported or text is empty.");
+                    resolve();
+                    return;
+                }
 
                 // Aktuelle Sprachausgabe abbrechen, falls vorhanden
                 if (speechSynthesis.speaking) {
+                    console.log("Cancelling ongoing speech.");
                     speechSynthesis.cancel();
                     // Kurze Wartezeit, damit cancel() wirken kann, bevor neue Utterance gestartet wird
-                    try { await sleep(50); } catch(e) {} // Robustheit bei await sleep
+                    try { await sleep(50); } catch(e) { console.error("Sleep after cancel failed", e); } // Robustheit bei await sleep
                 }
 
                 const utterance = new SpeechSynthesisUtterance(text);
@@ -1448,16 +1613,26 @@
                 // Ausgewählte oder Standard-Stimme verwenden
                 if (options.voice) {
                      utterance.voice = options.voice;
+                     console.log("Using provided voice option:", options.voice.name);
                 } else if (selectedVoice) {
                      utterance.voice = selectedVoice;
+                     console.log("Using selected voice:", selectedVoice.name);
                 } else {
                     const voices = speechSynthesis.getVoices(); // Stimmen erneut abrufen für den Fall, dass sie sich geändert haben
                     const defaultGermanVoice = voices.find(v => v.lang.startsWith('de') && v.default) ||
                                              voices.find(v => v.lang.startsWith('de')); // Fallback auf erste deutsche Stimme
-                    if (defaultGermanVoice) utterance.voice = defaultGermanVoice;
+                    if (defaultGermanVoice) {
+                         utterance.voice = defaultGermanVoice;
+                         console.log("Using default German voice:", defaultGermanVoice.name);
+                    } else {
+                         console.warn("No suitable German voice found, using browser default (if any).");
+                    }
                 }
 
-                utterance.onend = () => resolve();
+                utterance.onend = () => {
+                    console.log("Speech finished for text:", text);
+                    resolve();
+                };
                 utterance.onerror = (event) => {
                     console.error('TTS Error:', event.error, "Text:", text, "Voice:", utterance.voice ? utterance.voice.name : 'Default');
                     resolve(); // Trotz Fehler resolven, damit das Spiel nicht hängt
@@ -1468,8 +1643,9 @@
 
 
         async function playClickSound() {
+            console.log("playClickSound called.");
             const ctx = await ensureAudioContext();
-            if (!ctx) { return; }
+            if (!ctx) { console.warn("AudioContext not available for click sound."); return; }
             const clickTime = ctx.currentTime;
             const oscillator = ctx.createOscillator();
             oscillator.type = 'triangle';
@@ -1480,11 +1656,14 @@
             gainNode.gain.exponentialRampToValueAtTime(0.0001, clickTime + 0.08);
             oscillator.connect(gainNode); gainNode.connect(ctx.destination);
             oscillator.start(clickTime); oscillator.stop(clickTime + 0.08);
+             console.log("Click sound started.");
+             // No need to await short sound, let it play in background
         }
 
         async function playErrorSound() {
+             console.log("playErrorSound called.");
             const ctx = await ensureAudioContext();
-            if (!ctx) { return; }
+            if (!ctx) { console.warn("AudioContext not available for error sound."); return; }
             const oscillator = ctx.createOscillator();
             const gainNode = ctx.createGain();
             oscillator.connect(gainNode); gainNode.connect(ctx.destination);
@@ -1495,13 +1674,28 @@
             oscillator.start(ctx.currentTime);
             oscillator.stop(ctx.currentTime + duration);
             gainNode.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + duration);
-             try { await sleep(duration * 1000 + 50); } catch(e) {} // Sicherstellen, dass der Sound abgespielt wurde
+            console.log("Error sound started.");
+             try { await sleep(duration * 1000 + 50); } catch(e) { console.error("Sleep after error sound failed", e); } // Sicherstellen, dass der Sound abgespielt wurde
+             console.log("Error sound finished.");
         }
 
         async function handleTileClick(itemId) {
-            // Klick ignorieren, wenn Spiel nicht aktiv, Board blockiert, End-Display sichtbar oder keine Sequenz aktiv
-            if (!gameActive || boardOverlay.style.display === 'block' ||
-                endGameDisplay.classList.contains('visible') || currentSequence.length === 0) return;
+            console.log('Tile clicked:', itemId, 'Current player sequence length:', playerSequence.length, 'GameActive:', gameActive, 'BoardOverlay:', boardOverlay ? boardOverlay.style.display : 'N/A', 'EndGameVisible:', endGameDisplay.classList.contains('visible'), 'SequenceLength:', currentSequence.length);
+
+            // Check if interaction is allowed
+            const isBoardBlockedByGame = boardOverlay && boardOverlay.style.display === 'block' && !gameWasPausedByMenu;
+            if (!gameActive || isBoardBlockedByGame ||
+                endGameDisplay.classList.contains('visible') || currentSequence.length === 0)
+            {
+                 console.log('Tile click ignored due to game state.');
+                 // Optionally add feedback for ignored clicks
+                 const tileElement = gameBoardElement.querySelector(`.tile[data-id='${itemId}']`);
+                  if (tileElement) {
+                     tileElement.classList.add('error-input'); setTimeout(() => tileElement.classList.remove('error-input'), 300);
+                 }
+                 playErrorSound(); // Smaller error sound for invalid clicks?
+                 return;
+            }
 
             playClickSound(); // Klick-Sound abspielen
             const tileElement = gameBoardElement.querySelector(`.tile[data-id='${itemId}']`);
@@ -1509,80 +1703,109 @@
 
             // Überprüfen, ob der Klick innerhalb der erwarteten Sequenzlänge liegt
             if (currentClickIndex >= currentSequence.length) {
-                console.warn("Klick nach Ende der erwarteten Sequenz.");
-                // Eventuell hier einen Fehler signalisieren oder einfach ignorieren
+                console.warn("handleTileClick: Click after end of expected sequence. Ignoring.");
                  if (tileElement) {
                      tileElement.classList.add('error-input'); setTimeout(() => tileElement.classList.remove('error-input'), 600);
                  }
                  playErrorSound();
-                 return;
+                 return; // Ignore clicks beyond sequence length
             }
 
 
             if (itemId === currentSequence[currentClickIndex]) {
                 // Korrekter Klick
                 playerSequence.push(itemId);
+                console.log('handleTileClick: Correct click. Player sequence:', playerSequence);
                 if (tileElement) {
                     tileElement.classList.add('active'); // Kachel hervorheben
                     setTimeout(() => tileElement.classList.remove('active'), 300); // Hervorhebung entfernen
                 }
                 if (playerSequence.length === currentSequence.length) {
                     // Ganze Sequenz korrekt eingegeben
+                    console.log('handleTileClick: Player sequence complete and correct. Evaluating...');
                     await evaluatePlayerInput(true);
                 }
             } else {
                 // Falscher Klick
+                console.log('handleTileClick: Incorrect click. Expected:', currentSequence[currentClickIndex], 'Got:', itemId);
                 if (tileElement) {
                     tileElement.classList.add('error-input'); // Fehlerhervorhebung
                     setTimeout(() => tileElement.classList.remove('error-input'), 600); // Hervorhebung entfernen
                 }
                 await evaluatePlayerInput(false);
             }
+             console.log('handleTileClick finished.');
         }
 
         async function evaluatePlayerInput(isCorrectSequence) {
-            if (!gameActive) return; // Spiel nicht aktiv, nichts tun
-            disableBoardInteraction(true); // Board blockieren für Auswertung
-            repeatButton.disabled = true;  // Wiederholbutton deaktivieren
+            console.log('evaluatePlayerInput started. Correct:', isCorrectSequence, 'Round:', currentRound, 'Attempt:', roundAttempts, 'GameActive:', gameActive);
+             if (!gameActive) { console.log('evaluatePlayerInput returning: Game not active.'); return; }
+
+            disableBoardInteraction(true); // Block board during evaluation
+            repeatButton.disabled = true;
+            console.log('evaluatePlayerInput: Board interaction disabled, repeat button disabled.');
+
 
             if (isCorrectSequence) {
-                updateProgressCircle(currentRound, true); correctRrounds++;
-                await sleep(150); // Kurze Pause
-                await playFixedRewardMelody(true); // Erfolgssound
-                currentRound++; playerSequence = []; roundAttempts = 0; // Nächste Runde vorbereiten
-                await sleep(500); // Pause vor nächster Runde
+                console.log('evaluatePlayerInput: Correct sequence entered.');
+                updateProgressCircle(currentRound, true);
+                correctRounds++; // FIX: Tippfehler korrigiert
+                console.log('evaluatePlayerInput: Correct rounds:', correctRounds);
+                await sleep(150);
+                await playFixedRewardMelody(true);
+                currentRound++;
+                playerSequence = [];
+                roundAttempts = 0;
+                console.log('evaluatePlayerInput: Moving to next round.');
+                await sleep(500);
                 await nextRound();
             } else {
+                console.log('evaluatePlayerInput: Incorrect sequence entered.');
                 roundAttempts++;
-                // Runde als falsch markieren, wenn es der erste falsche Versuch in dieser Runde ist
-                 if (roundAttempts === 1) {
-                    updateProgressCircle(currentRound, false);
-                 }
-                await playErrorSound(); // Fehlersound
+                console.log('evaluatePlayerInput: Round attempts:', roundAttempts);
+                if (roundAttempts === 1) {
+                    updateProgressCircle(currentRound, false); // Mark round as incorrect on first error
+                }
+                await playErrorSound();
 
                 if (roundAttempts >= MAX_ATTEMPTS_PER_ROUND) {
-                    // Maximale Versuche erreicht, nächste Runde.
-                    // Der Fortschrittskreis ist bereits als falsch markiert.
+                    console.log('evaluatePlayerInput: Max attempts reached. Moving to next round.');
                     await sleep(1000); // Längere Pause nach mehreren Fehlern
-                    currentRound++; playerSequence = []; roundAttempts = 0;
-                    await nextRound();
+                    currentRound++;
+                    playerSequence = [];
+                    roundAttempts = 0;
+                    await nextRound(); // Game proceeds to the next round
                 } else {
-                    // Noch Versuche übrig, Sequenz wiederholen
-                    playerSequence = []; // Spielereingabe zurücksetzen
-                    await sleep(1000); // Pause vor Wiederholung
-                    await playSequence(currentSequence, true); // Sequenz wiederholen (isRepeat = true)
+                    console.log('evaluatePlayerInput: Incorrect, attempts left. Repeating sequence.');
+                    playerSequence = []; // Reset player input for retry
+                    await sleep(1000); // Pause before repetition
+                    await playSequence(currentSequence, true); // Repeat the sequence
+                    // After playSequence finishes, the board interaction should be re-enabled by playSequence itself.
+                     console.log('evaluatePlayerInput: playSequence (repeat) finished. Waiting for input.');
                 }
             }
+             console.log('evaluatePlayerInput finished.'); // This might be logged before awaits complete
         }
 
         async function endGame() {
+            console.log("endGame called. Current gameActive:", gameActive);
             const wasActuallyActive = gameActive; // Merken, ob Spiel wirklich lief
             gameActive = false; gameWasPausedByMenu = false; // Spiel beenden
-            disableBoardInteraction(false); // Board freigeben
+            console.log("Game state set to inactive.");
+
+            // Ensure board interaction is re-enabled unless menu is open
+             if (!settingsMenu.classList.contains('active')) {
+                 console.log("Menu not active, re-enabling board interaction.");
+                 disableBoardInteraction(false);
+             } else {
+                 console.log("Menu active, board interaction state handled by toggleMenu.");
+             }
             updateButtonStates(false); updateSettingsAccess(false); // UI-Status aktualisieren
+            console.log("UI updated for end game state.");
 
 
             if (wasActuallyActive) { // Nur wenn das Spiel auch wirklich lief
+                console.log("Displaying end game message.");
                 const successRate = totalRounds > 0 ? (correctRounds / totalRounds) * 100 : 0;
                 let message = `Spiel beendet! ${correctRounds} von ${totalRounds} richtig (${successRate.toFixed(0)}%).`;
                 let emoji = '👍'; // Standard
@@ -1609,27 +1832,35 @@
                      playAgainButtonElement.style.display = ''; // "Nochmal spielen" Button anzeigen
                 }
                 endGameDisplay.classList.add('visible'); // End-Display einblenden
+                console.log(`End game message: "${message}"`);
+
                 await sleep(100); // Kurze Pause
                 await playFixedRewardMelody(false); // End-Melodie (false für längere Melodie)
             } else {
+                 console.log("Game was not actually active, hiding end game display.");
                  endGameDisplay.classList.remove('visible'); // Falls End-Display aus irgendeinem Grund sichtbar war
             }
+             console.log("endGame finished.");
         }
 
 
         async function playFixedRewardMelody(isRoundSuccessSound = false) {
+            console.log("playFixedRewardMelody called. isRoundSuccessSound:", isRoundSuccessSound);
             const ctx = await ensureAudioContext();
-            if (!ctx) { return; }
+            if (!ctx) { console.warn("AudioContext not available for melody."); return; }
             let melody; let baseNoteDuration; let basePauseBetweenNotes; let gainValue;
             if (isRoundSuccessSound) {
                 melody = [NOTE.C5, NOTE.E5, NOTE.G5];
                 baseNoteDuration = 0.12; basePauseBetweenNotes = 0.04; gainValue = 0.15;
+                 console.log("Playing round success melody.");
             } else {
                 const randomMelodyIndex = Math.floor(Math.random() * REWARD_MELODIES.length);
                 melody = REWARD_MELODIES[randomMelodyIndex];
                 baseNoteDuration = 0.25; basePauseBetweenNotes = 0.08; gainValue = 0.25;
+                 console.log("Playing end game melody (index:", randomMelodyIndex, ").");
             }
-            if (!melody || melody.length === 0) { return; }
+            if (!melody || melody.length === 0) { console.warn("Melody is empty."); return; }
+
             let currentTime = ctx.currentTime + 0.05; // Kleine Verzögerung für Audio-Start
             for (const frequency of melody) {
                 if (frequency === NOTE.PAUSE) { currentTime += baseNoteDuration + basePauseBetweenNotes; continue; }
@@ -1644,7 +1875,11 @@
                 currentTime += baseNoteDuration + basePauseBetweenNotes;
             }
             const melodyDurationMs = Math.max(0, (currentTime - (ctx.currentTime + 0.05))) * 1000;
-            if (melodyDurationMs > 0) { try { await sleep(melodyDurationMs + 50); } catch(e) {} } // Warte bis Melodie fertig + Puffer
+            if (melodyDurationMs > 0) {
+                 console.log(`Waiting for melody to finish (${melodyDurationMs}ms).`);
+                 try { await sleep(melodyDurationMs + 50); } catch(e) { console.error("Sleep after melody failed", e); } // Warte bis Melodie fertig + Puffer
+            }
+             console.log("Melody playback finished.");
         }
 
         function sleep(ms) {
